@@ -1,15 +1,15 @@
-# Antimoney
+# Antimony Editor
 
-A fastbased video editing software that doesn't have bullshit subscribtions.
+A fastbased video editing software that doesn't have subscriptions.
 
 ## Features
 
-i dont fucking know this is my forst time making a markdown file lol
+Features unknown as of now.
 
 
 ## Installation
 
-Download the file or smth use the hard to find fmmpreg
+Download the file ("or smth use the hard to find fmmpreg" - Solar)
 
 ```lua
     local hi = game.ServerStorage.AntimonyInstaller
@@ -17,6 +17,6 @@ Download the file or smth use the hard to find fmmpreg
     -- i think thats how it may looks
 ```
 
-## conclusion
+## Conclusion
 
-like and subscribe and hit that bell
+This is will be very amazing Antimony Editor yay! - Mr.Alien#7893
