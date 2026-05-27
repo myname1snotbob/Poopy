@@ -34,6 +34,3 @@
   <div class="stage">the best thing ever goes here</div>
 </div>
 
-<style>
-  @import "../styles/editor.css";
-</style>
