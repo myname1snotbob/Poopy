@@ -1,6 +1,6 @@
 import * as Blockly from "blockly/core";
 import { javascriptGenerator, Order } from "blockly/javascript";
-import { categoryColours } from "$lib/colors";
+import { categoryColours } from "../colors";
 
 export function blockInit() {
     // block shape

@@ -1,5 +1,5 @@
 import * as Blockly from "blockly/core";
-import { toolbox } from "$lib/toolbox";
+import { toolbox } from "./toolbox";
 
 // 1. Create a custom theme based on the default theme that enables hats
 const zeus = Blockly.Theme.defineTheme('custom_hat_theme', {
@@ -9,7 +9,7 @@ const zeus = Blockly.Theme.defineTheme('custom_hat_theme', {
     componentStyles: {},
     fontStyle: {},
     startHats: true,
-    name: ""
+    name: "",
     // i plan to modify the render more in the future so i want to make a custom theme for that, but for now it just enables hats and has a custom name
 });
 
