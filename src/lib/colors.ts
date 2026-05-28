@@ -1,5 +1,5 @@
 export const categoryColours = {
-    test: "#f1af20",
+    test: "#0011ff",
     timing: "#e53935",
     motion: "#1e88e5",
     looks: "#8e24aa",
