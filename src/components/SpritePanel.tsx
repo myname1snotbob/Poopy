@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Type, Pentagon, Image, HelpCircle, X, Copy } from 'lucide-react';
 import { useSprites, createTextSprite, createShapeSprite } from '../lib/sprites';
 
 export default function SpritePanel() {
@@ -16,10 +17,10 @@ export default function SpritePanel() {
 
 	const iconForType = (type: string) => {
 		switch (type) {
-			case 'text': return 'T';
-			case 'shape': return '◆';
-			case 'image': return '🖼';
-			default: return '?';
+			case 'text': return <Type size={16} />;
+			case 'shape': return <Pentagon size={16} />;
+			case 'image': return <Image size={16} />;
+			default: return <HelpCircle size={16} />;
 		}
 	};
 
@@ -50,14 +51,14 @@ export default function SpritePanel() {
 									onClick={(e) => { e.stopPropagation(); dispatch({ type: 'DUPLICATE_SPRITE', id: sprite.id }); }}
 									title="Duplicate"
 								>
-									⧉
+									<Copy size={14} />
 								</button>
 								<button
 									className="sprite-action-btn danger"
 									onClick={(e) => { e.stopPropagation(); dispatch({ type: 'REMOVE_SPRITE', id: sprite.id }); }}
 									title="Delete"
 								>
-									✕
+									<X size={14} />
 								</button>
 							</div>
 						</div>
@@ -68,10 +69,10 @@ export default function SpritePanel() {
 				{showMenu && (
 					<div className="add-sprite-menu">
 						<button className="add-sprite-option" onClick={() => handleAdd('text')}>
-							<span style={{ color: 'var(--accent)' }}>T</span> Text
+							<span style={{ color: 'var(--accent)', display: 'flex' }}><Type size={14} /></span> Text
 						</button>
 						<button className="add-sprite-option" onClick={() => handleAdd('shape')}>
-							<span style={{ color: 'var(--accent)' }}>◆</span> Shape
+							<span style={{ color: 'var(--accent)', display: 'flex' }}><Pentagon size={14} /></span> Shape
 						</button>
 					</div>
 				)}

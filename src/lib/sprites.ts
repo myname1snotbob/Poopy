@@ -76,7 +76,7 @@ export function createTextSprite(name: string): Sprite {
 		zIndex: 0,
 		blocklyXml: '',
 		data: {
-			content: 'Hello World',
+			content: 'Antimony!',
 			fontFamily: 'Inter',
 			fontSize: 24,
 			fontWeight: 400,
