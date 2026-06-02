@@ -11,5 +11,5 @@ Blockly.Blocks["text"] = {
 
 javascriptGenerator.forBlock["text"] = function (block: Blockly.Block) {
   const code = JSON.stringify(block.getFieldValue("TEXT"));
-  return [code, (javascriptGenerator as any).ORDER_ATOMIC];
+  return [code, Blockly.JavaScript.ORDER_ATOMIC];
 };

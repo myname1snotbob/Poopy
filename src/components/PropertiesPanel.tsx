@@ -1,4 +1,6 @@
 import { useSprites, isTextData, isShapeData, type TextSpriteData, type ShapeSpriteData } from '../lib/sprites';
+import { useEffect, useState } from 'react';
+import { getAvailableFonts, COMMON_FONTS, detectAvailableFonts, requestFontAccess, getFontPermissionState } from '../lib/fonts';
 
 export default function PropertiesPanel() {
 	const { state, dispatch } = useSprites();
@@ -6,11 +8,56 @@ export default function PropertiesPanel() {
 
 	if (!sprite) return;
 
-	const update = (changes: Record<string, any>) => {
+	const [fonts, setFonts] = useState<string[]>([]);
+	const [fontPermission, setFontPermission] = useState<'granted' | 'denied' | 'prompt' | 'unknown'>('unknown');
+	const [requestingFonts, setRequestingFonts] = useState(false);
+
+	useEffect(() => {
+		let mounted = true;
+		(async () => {
+			try {
+				const state = await getFontPermissionState();
+				if (!mounted) return;
+				setFontPermission(state);
+				if (state === 'granted') {
+					const found = await detectAvailableFonts(COMMON_FONTS);
+					if (!mounted) return;
+					setFonts([...found, 'system-ui', 'sans-serif', 'serif', 'monospace']);
+					return;
+				}
+				const fallback = getAvailableFonts(COMMON_FONTS);
+				if (!mounted) return;
+				setFonts([...fallback, 'system-ui', 'sans-serif', 'serif', 'monospace']);
+			} catch {
+				if (!mounted) return;
+				setFonts(['Inter', 'Arial', 'Georgia', 'monospace']);
+			}
+		})();
+		return () => { mounted = false; };
+	}, []);
+
+	const handleUnlockFonts = async () => {
+		setRequestingFonts(true);
+		try {
+			const list = await requestFontAccess();
+			if (list && list.length) {
+				setFonts([...Array.from(new Set(list)), 'system-ui', 'sans-serif', 'serif', 'monospace']);
+				setFontPermission('granted');
+			} else {
+				setFontPermission('denied');
+			}
+		} catch {
+			setFontPermission('denied');
+		} finally {
+			setRequestingFonts(false);
+		}
+	};
+
+	const update = (changes: Record<string, unknown>) => {
 		dispatch({ type: 'UPDATE_SPRITE', id: sprite.id, changes });
 	};
 
-	const updateData = (dataChanges: Record<string, any>) => {
+	const updateData = (dataChanges: Record<string, unknown>) => {
 		update({ data: { ...sprite.data, ...dataChanges } });
 	};
 
@@ -88,18 +135,34 @@ export default function PropertiesPanel() {
 									onChange={(e) => updateData({ content: e.target.value })}
 								/>
 							</div>
-							<div className="properties-row">
+							<div className="properties-row" style={{ alignItems: 'center' }}>
 								<span className="properties-label">Font</span>
-								<select
-									className="properties-select"
-									value={d.fontFamily}
-									onChange={(e) => updateData({ fontFamily: e.target.value })}
-								>
-									<option value="Inter">Inter</option>
-									<option value="Arial">Arial</option>
-									<option value="Georgia">Georgia</option>
-									<option value="monospace">Monospace</option>
-								</select>
+								<div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+									<select
+										className="properties-select"
+										value={d.fontFamily}
+										onChange={(e) => updateData({ fontFamily: e.target.value })}
+										disabled={fontPermission !== 'granted'}
+										style={{ minWidth: 160 }}
+									>
+										{(!fonts.includes(d.fontFamily) && d.fontFamily) ? (
+											<option value={d.fontFamily}>{d.fontFamily}</option>
+										) : null}
+										{fonts.map(f => (
+											<option key={f} value={f}>{f}</option>
+										))}
+									</select>
+									{fontPermission !== 'granted' && (
+										<button
+											className="properties-btn"
+											onClick={handleUnlockFonts}
+											disabled={requestingFonts}
+											title="Request permission to access local fonts"
+										>
+											{requestingFonts ? 'Unlocking…' : 'Unlock Fonts'}
+										</button>
+									)}
+								</div>
 							</div>
 							{numField('Size', d.fontSize, 'fontSize', true)}
 							<div className="properties-row">

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { Stage, Layer, Rect, Text, Ellipse, Transformer } from 'react-konva';
 import type Konva from 'konva';
 import { useSprites, isTextData, isShapeData, type Sprite } from '../lib/sprites';
+import { buildFontStack } from '../lib/fonts';
 
 const VIRTUAL_WIDTH = 480;
 const VIRTUAL_HEIGHT = 270;
@@ -126,7 +127,7 @@ function SpriteRenderer({ sprite, isSelected, onSelect }: {
 				{...commonProps}
 				ref={shapeRef as React.RefObject<Konva.Text | null>}
 				text={d.content}
-				fontFamily={d.fontFamily}
+				fontFamily={buildFontStack(d.fontFamily)}
 				fontSize={d.fontSize}
 				fontStyle={d.fontWeight >= 600 ? 'bold' : 'normal'}
 				fill={d.color}

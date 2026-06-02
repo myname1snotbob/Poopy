@@ -718,6 +718,32 @@ body {
   border-color: var(--accent);
 }
 
+.properties-btn {
+  min-height: 26px;
+  padding: 0 0.8rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 11px;
+  cursor: pointer;
+  transition:
+    background 0.12s,
+    border-color 0.12s,
+    color 0.12s;
+}
+
+.properties-btn:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--border-default);
+}
+
+.properties-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .timeline-ruler {
   height: var(--ruler-h);
   background: var(--bg-secondary);
