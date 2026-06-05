@@ -258,9 +258,9 @@ export default function StageView() {
 		}
 	}, [dispatch]);
 
-	const handlePlay = () => {
+	const handlePlay = async () => {
 		setIsPlaying(true);
-		runtime.start();
+		await runtime.start();
 	};
 
 	const handleStop = () => {

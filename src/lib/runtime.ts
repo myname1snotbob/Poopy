@@ -53,12 +53,12 @@ class Runtime {
         return this.compiler?.() ?? '';
     }
 
-    start() {
+    async start() {
         const compiled = this.compile();
         this.clearHandlers();
 
         if (compiled.trim()) {
-            new Function(compiled)();
+            await new Function(compiled)();
         }
 
         this.emit('start', { time: 0 });

@@ -13,3 +13,26 @@ Blockly.Blocks["checkbox"] = {
 javascriptGenerator.forBlock["checkbox"] = function (block: Blockly.Block) {
     return [block.getFieldValue("BOOL") === "TRUE" ? "true" : "false", Order.ATOMIC];
 };
+
+javascriptGenerator.forBlock["controls_whileUntil"] = function (block: Blockly.Block) {
+    const condition = javascriptGenerator.valueToCode(
+        block,
+        "BOOL",
+        Order.NONE
+    ) || "false";
+    
+    const statements = javascriptGenerator.statementToCode(block, "DO");
+    
+    const mode = block.getFieldValue("MODE");
+    const isUntil = mode === "UNTIL";
+    
+    const actualCondition = isUntil ? `!(${condition})` : condition;
+    
+    return `await (async () => {
+  let _whileIterations = 0;
+  while (${actualCondition}) {
+    ${statements}
+    if (++_whileIterations % 100 === 0) await new Promise(resolve => setTimeout(resolve, 0));
+  }
+})();\n`;
+};
