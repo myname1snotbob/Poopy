@@ -35,6 +35,25 @@ javascriptGenerator.forBlock["motion_moveUp"] = function (block: Blockly.Block) 
   return `context.sprite.y -= ${steps};\n`;
 };
 
+Blockly.Blocks["motion_moveSteps"] = {
+  init: function () {
+    this.appendValueInput("STEPS")
+      .setCheck("Number")
+      .appendField("move");
+    this.appendDummyInput().appendField("steps");
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setStyle("motion_blocks");
+    this.setTooltip("Move the sprite forward by the specified number of steps in its current direction");
+    this.setInputsInline(true);
+  },
+};
+
+javascriptGenerator.forBlock["motion_moveSteps"] = function (block: Blockly.Block) {
+  const steps = javascriptGenerator.valueToCode(block, "STEPS", Order.ATOMIC) || "10";
+  return `const _steps = ${steps};\nconst _rad = (context.sprite.rotation * Math.PI) / 180;\ncontext.sprite.x += Math.cos(_rad) * _steps;\ncontext.sprite.y += Math.sin(_rad) * _steps;\n`;
+};
+
 Blockly.Blocks["motion_rotate"] = {
   init: function () {
     this.appendValueInput("ANGLE")

@@ -216,6 +216,9 @@ const toolboxShadowTemplates: Record<string, Record<string, ShadowTemplate>> = {
         DX: { type: "math_number", fields: { NUM: 10 } },
         DY: { type: "math_number", fields: { NUM: 0 } },
     },
+    motion_moveSteps: {
+        STEPS: { type: "math_number", fields: { NUM: 10 } },
+    },
     motion_setXY: {
         VALUE: { type: "math_number", fields: { NUM: 0 } },
     },
