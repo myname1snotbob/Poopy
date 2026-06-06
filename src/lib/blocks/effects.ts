@@ -213,3 +213,86 @@ javascriptGenerator.forBlock["effects_rotateTo"] = function (block: Blockly.Bloc
 };
 
 export { };
+
+const EFFECT_OPTIONS: [string, string][] = [
+  ["blur", "blur"],
+  ["contrast", "contrast"],
+  ["saturation", "saturation"],
+  ["color shift", "color_shift"],
+  ["brightness", "brightness"],
+  ["invert", "invert"],
+  ["sepia", "sepia"],
+  ["transparency", "transparency"],
+];
+
+Blockly.Blocks["effects_set_canvas"] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField("set canvas")
+      .appendField(new Blockly.FieldDropdown(EFFECT_OPTIONS), "EFFECT")
+      .appendField("to");
+    this.appendValueInput("VALUE").setCheck("Number");
+    this.setInputsInline(true);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setStyle("effects_blocks");
+    this.setTooltip("Set a global canvas effect value");
+  },
+};
+
+javascriptGenerator.forBlock["effects_set_canvas"] = function (block: Blockly.Block) {
+  const effect = block.getFieldValue("EFFECT");
+  const val = javascriptGenerator.valueToCode(block, "VALUE", Order.ATOMIC) || "0";
+  return `window.RUNTIME && window.RUNTIME.setCanvasEffect(${JSON.stringify(effect)}, (${val}));\n`;
+};
+
+Blockly.Blocks["effects_get_canvas"] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField("get canvas")
+      .appendField(new Blockly.FieldDropdown(EFFECT_OPTIONS), "EFFECT");
+    this.setOutput(true, "Number");
+    this.setStyle("effects_blocks");
+    this.setTooltip("Get a global canvas effect value");
+  },
+};
+
+javascriptGenerator.forBlock["effects_get_canvas"] = function (block: Blockly.Block) {
+  const effect = block.getFieldValue("EFFECT");
+  return [`(window.RUNTIME && window.RUNTIME.getCanvasEffect(${JSON.stringify(effect)}))`, Order.ATOMIC];
+};
+
+Blockly.Blocks["effects_clear_canvas"] = {
+  init: function () {
+    this.appendDummyInput().appendField("clear canvas effects");
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setStyle("effects_blocks");
+    this.setTooltip("Clear all global canvas effects");
+  },
+};
+
+javascriptGenerator.forBlock["effects_clear_canvas"] = function () {
+  return `window.RUNTIME && window.RUNTIME.clearCanvasEffects();\n`;
+};
+
+Blockly.Blocks["effects_change_canvas"] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField("change canvas")
+      .appendField(new Blockly.FieldDropdown(EFFECT_OPTIONS), "EFFECT")
+      .appendField("by");
+    this.appendValueInput("DELTA").setCheck("Number");
+    this.setInputsInline(true);
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setStyle("effects_blocks");
+    this.setTooltip("Change a global canvas effect by a delta");
+  },
+};
+
+javascriptGenerator.forBlock["effects_change_canvas"] = function (block: Blockly.Block) {
+  const effect = block.getFieldValue("EFFECT");
+  const delta = javascriptGenerator.valueToCode(block, "DELTA", Order.ATOMIC) || "0";
+  return `window.RUNTIME && window.RUNTIME.changeCanvasEffect(${JSON.stringify(effect)}, (${delta}));\n`;
+};

@@ -84,6 +84,15 @@ const toolboxShadowTemplates: Record<string, Record<string, ShadowTemplate>> = {
         THEN: { type: "text", fields: { TEXT: "" } },
         ELSE: { type: "text", fields: { TEXT: "" } },
     },
+    logic_switch: {
+        VALUE: { type: "text", fields: { TEXT: "" } },
+    },
+    logic_case: {
+        VALUE: { type: "text", fields: { TEXT: "" } },
+    },
+    logic_runNextCaseWhen: {
+        VALUE: { type: "text", fields: { TEXT: "" } },
+    },
     controls_repeat_ext: {
         TIMES: { type: "math_number", fields: { NUM: 10 } },
     },
@@ -158,6 +167,23 @@ const toolboxShadowTemplates: Record<string, Record<string, ShadowTemplate>> = {
     text_prompt_ext: {
         TEXT: { type: "text", fields: { TEXT: "" } },
     },
+    functions_lambda: {
+        // ARG is a field, BODY has no shadow
+    },
+    functions_execute: {
+        FUNC: { type: "text", fields: { TEXT: "" } },
+        ARG: { type: "text", fields: { TEXT: "" } },
+    },
+    functions_execute_reporter: {
+        FUNC: { type: "text", fields: { TEXT: "" } },
+        ARG: { type: "text", fields: { TEXT: "" } },
+    },
+    functions_return: {
+        VALUE: { type: "math_number", fields: { NUM: 1 } },
+    },
+    wait_seconds: {
+        SECONDS: { type: "math_number", fields: { NUM: 1 } },
+    },
     lists_repeat: {
         NUM: { type: "math_number", fields: { NUM: 5 } },
     },
@@ -176,7 +202,25 @@ const toolboxShadowTemplates: Record<string, Record<string, ShadowTemplate>> = {
     motion_rotate: {
         ANGLE: { type: "math_number", fields: { NUM: 15 } },
     },
+    motion_pointDirection: {
+        ANGLE: { type: "math_number", fields: { NUM: 90 } },
+    },
+    motion_turn: {
+        ANGLE: { type: "math_number", fields: { NUM: 15 } },
+    },
     motion_goToPosition: {
+        X: { type: "math_number", fields: { NUM: 0 } },
+        Y: { type: "math_number", fields: { NUM: 0 } },
+    },
+    motion_moveBy: {
+        DX: { type: "math_number", fields: { NUM: 10 } },
+        DY: { type: "math_number", fields: { NUM: 0 } },
+    },
+    motion_setXY: {
+        VALUE: { type: "math_number", fields: { NUM: 0 } },
+    },
+    motion_glideSecsTo: {
+        SECS: { type: "math_number", fields: { NUM: 1 } },
         X: { type: "math_number", fields: { NUM: 0 } },
         Y: { type: "math_number", fields: { NUM: 0 } },
     },
@@ -191,6 +235,14 @@ const toolboxShadowTemplates: Record<string, Record<string, ShadowTemplate>> = {
     },
     effects_shake: {
         INTENSITY: { type: "math_number", fields: { NUM: 5 } },
+    },
+    effects_set_canvas: {
+        VALUE: { type: "math_number", fields: { NUM: 0 } },
+    },
+    effects_get_canvas: {},
+    effects_clear_canvas: {},
+    effects_change_canvas: {
+        DELTA: { type: "math_number", fields: { NUM: 5 } },
     },
     effects_spin: {
         TIMES: { type: "math_number", fields: { NUM: 1 } },

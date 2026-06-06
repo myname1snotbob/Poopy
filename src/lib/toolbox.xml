@@ -59,6 +59,11 @@
       <value name="THEN"><shadow type="text"><field name="TEXT"></field></shadow></value>
       <value name="ELSE"><shadow type="text"><field name="TEXT"></field></shadow></value>
     </block>
+    <block type="logic_switch"><value name="VALUE"><shadow type="text"><field name="TEXT"></field></shadow></value></block>
+    <block type="logic_case"><value name="VALUE"><shadow type="text"><field name="TEXT"></field></shadow></value></block>
+    <block type="logic_default"></block>
+    <block type="logic_exit_case"></block>
+    <block type="logic_runNextCaseWhen"><value name="VALUE"><shadow type="text"><field name="TEXT"></field></shadow></value></block>
   </category>
   <!-- loops -->
   <category name="Loops" categorystyle="loop_blocks">
@@ -142,8 +147,14 @@
     <block type="motion_moveLeft"><value name="STEPS"><shadow type="math_number"><field name="NUM">10</field></shadow></value></block>
     <block type="motion_moveUp"><value name="STEPS"><shadow type="math_number"><field name="NUM">10</field></shadow></value></block>
     <block type="motion_moveDown"><value name="STEPS"><shadow type="math_number"><field name="NUM">10</field></shadow></value></block>
+    <block type="motion_pointDirection"><value name="ANGLE"><shadow type="math_number"><field name="NUM">90</field></shadow></value></block>
     <block type="motion_rotate"><value name="ANGLE"><shadow type="math_number"><field name="NUM">15</field></shadow></value></block>
+    <block type="motion_turn"><value name="ANGLE"><shadow type="math_number"><field name="NUM">15</field></shadow></value></block>
     <block type="motion_goToPosition"><value name="X"><shadow type="math_number"><field name="NUM">0</field></shadow></value><value name="Y"><shadow type="math_number"><field name="NUM">0</field></shadow></value></block>
+    <block type="motion_moveBy"><value name="DX"><shadow type="math_number"><field name="NUM">10</field></shadow></value><value name="DY"><shadow type="math_number"><field name="NUM">0</field></shadow></value></block>
+    <block type="motion_setXY"><field name="AXIS">X</field><value name="VALUE"><shadow type="math_number"><field name="NUM">0</field></shadow></value></block>
+    <block type="motion_glideSecsTo"><value name="SECS"><shadow type="math_number"><field name="NUM">1</field></shadow></value><value name="X"><shadow type="math_number"><field name="NUM">0</field></shadow></value><value name="Y"><shadow type="math_number"><field name="NUM">0</field></shadow></value></block>
+    <block type="motion_getXY"></block>
     <block type="motion_positionX"></block>
     <block type="motion_positionY"></block>
   </category>
@@ -162,6 +173,7 @@
   <!-- timing -->
   <category name="Timing" categorystyle="timing_blocks">
     <block type="on_start"></block>
+    <block type="wait_seconds"><value name="SECONDS"><shadow type="math_number"><field name="NUM">1</field></shadow></value></block>
   </category>
   <!-- effects -->
   <category name="Effects" categorystyle="effects_blocks">
@@ -172,6 +184,10 @@
     <block type="effects_fadeOut"><value name="DURATION"><shadow type="math_number"><field name="NUM">1</field></shadow></value></block>
     <block type="effects_scaleAnimation"><value name="SCALE"><shadow type="math_number"><field name="NUM">1.5</field></shadow></value><value name="DURATION"><shadow type="math_number"><field name="NUM">1</field></shadow></value></block>
     <block type="effects_rotateTo"><value name="ANGLE"><shadow type="math_number"><field name="NUM">90</field></shadow></value><value name="DURATION"><shadow type="math_number"><field name="NUM">1</field></shadow></value></block>
+    <block type="effects_set_canvas"><value name="VALUE"><shadow type="math_number"><field name="NUM">0</field></shadow></value></block>
+    <block type="effects_get_canvas"></block>
+    <block type="effects_clear_canvas"></block>
+    <block type="effects_change_canvas"><value name="DELTA"><shadow type="math_number"><field name="NUM">5</field></shadow></value></block>
   </category>
   <!-- layers -->
   <category name="Layers" categorystyle="layers_blocks">
@@ -187,7 +203,12 @@
   <!-- variables -->
   <category name="Variables" categorystyle="variable_blocks" custom="VARIABLE"></category>
   <!-- functions -->
-  <category name="Functions" categorystyle="procedure_blocks" custom="PROCEDURE"></category>
+  <category name="Functions" categorystyle="procedure_blocks">
+    <block type="functions_lambda"></block>
+    <block type="functions_execute"><value name="FUNC"></value><value name="ARG"><shadow type="text"><field name="TEXT">foo</field></shadow></value></block>
+    <block type="functions_execute_reporter"><value name="FUNC"></value><value name="ARG"><shadow type="text"><field name="TEXT">foo</field></shadow></value></block>
+    <block type="functions_return"><value name="VALUE"><shadow type="math_number"><field name="NUM">1</field></shadow></value></block>
+  </category>
   <!-- other -->
     <category name="Other" categorystyle="other_blocks"></category>
 </xml>

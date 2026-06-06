@@ -19,20 +19,22 @@ export const COMMON_FONTS = [
 
 type LocalFontRecord = { family?: string; postscriptName?: string; fullName?: string };
 type LocalFontsPermissionStatus = 'granted' | 'denied' | 'prompt' | 'unknown';
+/* eslint-disable @typescript-eslint/no-unused-vars */
 type FontsQueryEnvironment = {
   queryLocalFonts?: () => Promise<unknown>;
   fonts?: { query?: () => Promise<unknown> };
   permissions?: {
-    request?: (...args: [{ name: string }]) => Promise<{ state: LocalFontsPermissionStatus }>;
-    query?: (...args: [{ name: string }]) => Promise<{ state: LocalFontsPermissionStatus }>;
+    request?: (...args: unknown[]) => Promise<{ state: LocalFontsPermissionStatus }>;
+    query?: (...args: unknown[]) => Promise<{ state: LocalFontsPermissionStatus }>;
   };
 };
+/* eslint-enable @typescript-eslint/no-unused-vars */
 
 function checkWithFontAPI(font: string): boolean {
   if (typeof document === 'undefined') return false;
 
   try {
-    const doc = document as unknown as { fonts?: { check?: (...args: [string]) => boolean } };
+    const doc = document as unknown as { fonts?: { check?: (...args: unknown[]) => boolean } };
     return !!doc.fonts && !!doc.fonts.check && doc.fonts.check(`12px "${font}"`);
   } catch {
     return false;
@@ -101,8 +103,8 @@ async function queryLocalFontsAPI(): Promise<string[] | null> {
       typeof window !== 'undefined'
         ? (window as unknown as FontsQueryEnvironment)
         : typeof navigator !== 'undefined'
-        ? (navigator as unknown as FontsQueryEnvironment)
-        : null;
+          ? (navigator as unknown as FontsQueryEnvironment)
+          : null;
     if (!env) return null;
 
     if (typeof env.queryLocalFonts === 'function') {

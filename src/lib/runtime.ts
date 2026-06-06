@@ -43,6 +43,7 @@ class Runtime {
     private stopped = false;
     private activeTimeouts = new Set<ReturnType<typeof setTimeout>>();
     private pendingDelays = new Set<(error: StopError) => void>();
+    private canvasEffects: Map<string, number> = new Map();
 
     registerSprite(spriteId: string, context: SpriteContext) {
         this.sprites.set(spriteId, context);
@@ -67,7 +68,7 @@ class Runtime {
         const spriteId = this.currentSpriteId;
         if (!spriteId) {
             console.warn('Attempted to register handler without current sprite');
-            return () => {};
+            return () => { };
         }
 
         const spriteEvents = this.spriteHandlers.get(spriteId) ?? new Map();
@@ -139,6 +140,24 @@ class Runtime {
         }
         this.pendingDelays.clear();
         this.clearHandlers();
+    }
+
+    // Canvas / global effects API
+    setCanvasEffect(effect: string, value: number) {
+        this.canvasEffects.set(effect, value);
+    }
+
+    getCanvasEffect(effect: string) {
+        return this.canvasEffects.get(effect) ?? 0;
+    }
+
+    changeCanvasEffect(effect: string, delta: number) {
+        const current = this.getCanvasEffect(effect);
+        this.canvasEffects.set(effect, current + delta);
+    }
+
+    clearCanvasEffects() {
+        this.canvasEffects.clear();
     }
 
     onStart(handler: EventHandler) {

@@ -74,6 +74,7 @@ export default function SpritePanel() {
 						<button className="add-sprite-option" onClick={() => handleAdd('shape')}>
 							<span style={{ color: 'var(--accent)', display: 'flex' }}><Pentagon size={14} /></span> Shape
 						</button>
+
 					</div>
 				)}
 				<button className="add-sprite-btn" onClick={() => setShowMenu(!showMenu)}>

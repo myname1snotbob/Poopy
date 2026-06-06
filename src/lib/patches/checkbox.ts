@@ -8,6 +8,7 @@ const checkPath = "M 0 6.5 6.5 13 16.25 0";
 const xPath = "M 14.625 0 L 1.625 13 M 14.625 13 L 1.625 0";
 
 export class Checkbox extends Blockly.FieldCheckbox {
+  static SERIALIZABLE = true;
   private checkElement_: SVGPathElement | null = null;
   private mouseEnterWrapper_: Blockly.browserEvents.Data | null = null;
   private mouseLeaveWrapper_: Blockly.browserEvents.Data | null = null;
@@ -114,12 +115,12 @@ export class Checkbox extends Blockly.FieldCheckbox {
 }
 
 try {
-    if ((Blockly as any).fieldRegistry?.get?.("field_checkbox")) { /* i hate you typescript youre making me put random comments raauughhh */ }
+  if ((Blockly as any).fieldRegistry?.get?.("field_checkbox")) { /* i hate you typescript youre making me put random comments raauughhh */ }
 
-    Blockly.fieldRegistry.register("field_checkbox", Checkbox as any);
+  Blockly.fieldRegistry.register("field_checkbox", Checkbox as any);
 }
 catch (e) {
-    /* ts pmo */
+  /* ts pmo */
 }
 
 export default Checkbox;

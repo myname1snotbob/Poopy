@@ -209,6 +209,54 @@ export default function StageView() {
 
 	const scale = stageSize.width / VIRTUAL_WIDTH;
 
+	const [canvasEffects, setCanvasEffects] = useState<Record<string, number>>({});
+
+	useEffect(() => {
+		let mounted = true;
+		const effectKeys = [
+			'blur',
+			'contrast',
+			'saturation',
+			'color_shift',
+			'brightness',
+			'invert',
+			'sepia',
+			'transparency',
+		];
+
+		const readEffects = () => {
+			if (!mounted) return;
+			const effects: Record<string, number> = {};
+			for (const k of effectKeys) {
+				effects[k] = (window.RUNTIME && window.RUNTIME.getCanvasEffect && window.RUNTIME.getCanvasEffect(k)) || 0;
+			}
+			setCanvasEffects(effects);
+		};
+
+		readEffects();
+		const id = window.setInterval(readEffects, 120);
+		return () => {
+			mounted = false;
+			clearInterval(id);
+		};
+	}, []);
+
+	const computeFilterAndOpacity = () => {
+		const e = canvasEffects;
+		const parts: string[] = [];
+		if ((e.blur ?? 0) !== 0) parts.push(`blur(${e.blur}px)`);
+		if ((e.contrast ?? 0) !== 0) parts.push(`contrast(${100 + e.contrast}%)`);
+		if ((e.saturation ?? 0) !== 0) parts.push(`saturate(${100 + e.saturation}%)`);
+		if ((e['color_shift'] ?? 0) !== 0) parts.push(`hue-rotate(${e['color_shift']}deg)`);
+		if ((e.brightness ?? 0) !== 0) parts.push(`brightness(${100 + e.brightness}%)`);
+		if ((e.invert ?? 0) !== 0) parts.push(`invert(${e.invert}%)`);
+		if ((e.sepia ?? 0) !== 0) parts.push(`sepia(${e.sepia}%)`);
+		const opacity = 1 - ((e.transparency ?? 0) / 100);
+		return { filter: parts.join(' '), opacity: Math.max(0, Math.min(1, opacity)) };
+	};
+
+	const { filter: stageFilter, opacity: stageOpacity } = computeFilterAndOpacity();
+
 	useEffect(() => {
 		runtime.setCompiler(() => {
 			const parts: string[] = [];
@@ -269,7 +317,7 @@ ${code}
 
 	const handlePlay = async () => {
 		setIsPlaying(true);
-		
+
 		state.sprites.forEach(sprite => {
 			const spriteData: Record<string, unknown> = {
 				x: sprite.x,
@@ -351,21 +399,21 @@ ${code}
 			<div className="panel-header" style={{ justifyContent: 'space-between' }}>
 				<div className="transport-controls" style={{ background: 'transparent', border: 'none', padding: 0 }}>
 					<button className="transport-btn" title="Rewind">
-						<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 20L9 12l10-8v16zM7 19V5H5v14h2z"/></svg>
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 20L9 12l10-8v16zM7 19V5H5v14h2z" /></svg>
 					</button>
 					<button
 						className={`transport-btn ${isPlaying ? 'active' : ''}`}
 						title="Play"
 						onClick={handlePlay}
 					>
-						<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
 					</button>
 					<button
 						className="transport-btn"
 						title="Stop"
 						onClick={handleStop}
 					>
-						<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12"/></svg>
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" /></svg>
 					</button>
 				</div>
 			</div>
@@ -377,7 +425,7 @@ ${code}
 						scaleX={scale}
 						scaleY={scale}
 						onClick={handleStageClick}
-						style={{ borderRadius: '4px', overflow: 'hidden' }}
+						style={{ borderRadius: '4px', overflow: 'hidden', filter: stageFilter || undefined, opacity: stageOpacity }}
 					>
 						<Layer>
 							<Rect
@@ -386,7 +434,7 @@ ${code}
 								width={VIRTUAL_WIDTH}
 								height={VIRTUAL_HEIGHT}
 								name="background"
-						fill="#1a1a1a"
+								fill="#1a1a1a"
 							/>
 							{sorted.map(sprite => (
 								<SpriteRenderer
