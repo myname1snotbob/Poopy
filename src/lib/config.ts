@@ -48,6 +48,7 @@ const theme = Blockly.Theme.defineTheme('modern_dark', {
     startHats: false,
 });
 
+
 export function initAllBlocks() {
     import.meta.glob("./patches/**/*.ts", { eager: true });
     import.meta.glob("./blocks/**/*.ts", { eager: true });
@@ -141,6 +142,7 @@ function getValueInputsForBlock(blockType: string) {
 
     try {
         const block = workspace.newBlock(blockType);
+
         return block.inputList
             .filter((input) => input.connection?.type === Blockly.ConnectionType.INPUT_VALUE)
             .map((input) => ({
@@ -152,6 +154,18 @@ function getValueInputsForBlock(blockType: string) {
     } finally {
         workspace.dispose();
     }
+}
+
+function shouldSkipShadowForInput(blockType: string, inputName: string) {
+    if (blockType === "controls_if") {
+        return inputName === "IF0";
+    }
+
+    if (blockType === "controls_ifelse") {
+        return inputName === "IF0" || inputName === "IF1";
+    }
+
+    return false;
 }
 
 function normalizeToolboxXml(toolboxRoot: Element) {
@@ -171,6 +185,14 @@ function normalizeToolboxXml(toolboxRoot: Element) {
         }
 
         for (const input of getValueInputsForBlock(blockType)) {
+            if (blockType === "controls_forLoop" && input.name === "VAR") {
+                continue;
+            }
+
+            if (shouldSkipShadowForInput(blockType, input.name)) {
+                continue;
+            }
+
             let valueElement = findChildElement(block, `value[name="${input.name}"]`);
 
             if (!valueElement) {
@@ -186,6 +208,8 @@ function normalizeToolboxXml(toolboxRoot: Element) {
 
     return toolboxRoot;
 }
+
+initAllBlocks();
 
 const toolboxDom = normalizeToolboxXml(
     new DOMParser().parseFromString(toolboxXml, "text/xml").documentElement,

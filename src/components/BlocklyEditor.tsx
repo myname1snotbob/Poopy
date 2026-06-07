@@ -36,6 +36,26 @@ function syncShadowColours(workspace: Blockly.WorkspaceSvg | Blockly.Workspace) 
 	}
 }
 
+function ensureForLoopVariableBlocks(workspace: Blockly.WorkspaceSvg | Blockly.Workspace) {
+	for (const block of workspace.getAllBlocks(false)) {
+		if (block.type !== 'controls_forLoop') continue;
+		const input = block.getInput('VAR');
+		if (!input || input.connection?.targetBlock()) continue;
+
+		const variableBlock = workspace.newBlock('controls_forLoop_var');
+		const renderedVariableBlock = variableBlock as unknown as { initSvg?: () => void; render?: () => void };
+		renderedVariableBlock.initSvg?.();
+		renderedVariableBlock.render?.();
+		variableBlock.moveBy(0, 0);
+
+		const outputConnection = variableBlock.outputConnection;
+		if (outputConnection && input.connection) {
+			outputConnection.connect(input.connection);
+		}
+	}
+}
+
+
 function getFlyoutWorkspace(workspace: Blockly.WorkspaceSvg) {
 	return workspace.getFlyout()?.getWorkspace() ?? null;
 }
@@ -109,6 +129,7 @@ export default function BlocklyEditor() {
 		loadedSpriteIdRef.current = selectedSpriteId;
 
 		const handleWorkspaceChange = (e: Blockly.Events.Abstract) => {
+			ensureForLoopVariableBlocks(workspace);
 			syncShadowColours(workspace);
 			const fw = getFlyoutWorkspace(workspace);
 			if (fw) syncShadowColours(fw);

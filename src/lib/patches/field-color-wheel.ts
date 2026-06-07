@@ -1,1 +1,1 @@
-import "blockly-field-color-wheel";
+import "../fields/color-wheel";
