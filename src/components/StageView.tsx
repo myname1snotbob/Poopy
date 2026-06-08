@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { Play, Square, SkipBack } from 'lucide-react';
 import { Stage, Layer, Rect, Text, Ellipse, Transformer } from 'react-konva';
 import type Konva from 'konva';
 import { useSprites, isTextData, isShapeData, type Sprite } from '../lib/sprites';
@@ -417,21 +418,21 @@ export default function StageView() {
 			<div className="panel-header" style={{ justifyContent: 'space-between' }}>
 				<div className="transport-controls" style={{ background: 'transparent', border: 'none', padding: 0 }}>
 					<button className="transport-btn" title="Rewind">
-						<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 20L9 12l10-8v16zM7 19V5H5v14h2z" /></svg>
+						<SkipBack size={18} />
 					</button>
 					<button
 						className={`transport-btn ${isPlaying ? 'active' : ''}`}
 						title="Play"
 						onClick={handlePlay}
 					>
-						<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+						<Play size={18} />
 					</button>
 					<button
 						className="transport-btn"
 						title="Stop"
 						onClick={handleStop}
 					>
-						<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" /></svg>
+						<Square size={18} />
 					</button>
 				</div>
 			</div>
