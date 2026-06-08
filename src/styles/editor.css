@@ -1068,47 +1068,44 @@ body {
   color: var(--text-primary);
 }
 
-.see-js-btn {
+.header-btn-group {
   position: absolute;
   left: 100px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.see-js-btn {
+  background: none;
+  border: none;
   color: var(--text-primary);
-  padding: 4px 12px;
-  border-radius: var(--radius-sm);
-  font-size: 10px;
-  font-weight: 600;
+  padding: 0;
   cursor: pointer;
-  transition: background 0.12s, border-color 0.12s;
-  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
 }
 
 .see-js-btn:hover {
-  background: var(--bg-surface);
-  border-color: var(--border-default);
+  color: var(--text-secondary);
 }
 
 .file-menu-container {
-  position: absolute;
-  left: 170px;
+  position: relative;
 }
 
 .file-tab-btn {
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-subtle);
+  background: none;
+  border: none;
   color: var(--text-primary);
-  padding: 4px 12px;
-  border-radius: var(--radius-sm);
-  font-size: 10px;
-  font-weight: 600;
+  padding: 0;
   cursor: pointer;
-  transition: background 0.12s, border-color 0.12s;
-  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
 }
 
 .file-tab-btn:hover {
-  background: var(--bg-surface);
-  border-color: var(--border-default);
+  color: var(--text-secondary);
 }
 
 .file-menu {

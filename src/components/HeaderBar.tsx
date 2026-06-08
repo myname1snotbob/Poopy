@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { File, Code } from 'lucide-react';
 
 interface HeaderBarProps {
 	projectName: string;
@@ -35,37 +36,39 @@ export default function HeaderBar({
 				<img src="logo_dark.svg" alt="Antimony Logo" />
 			</div>
 
-			<button className="see-js-btn" onClick={onSeeJS}>See JS</button>
+			<div className="header-btn-group">
+				<button className="see-js-btn" onClick={onSeeJS}><Code size={22} /></button>
 
-			<div className="file-menu-container" ref={menuRef}>
-				<button
-					className="file-tab-btn"
-					onClick={() => setIsFileMenuOpen(!isFileMenuOpen)}
-				>
-					File
-				</button>
-				{isFileMenuOpen && (
-					<div className="file-menu">
-						<button
-							className="file-menu-item"
-							onClick={() => {
-								onSave();
-								setIsFileMenuOpen(false);
-							}}
-						>
-							Save Project
-						</button>
-						<button
-							className="file-menu-item"
-							onClick={() => {
-								onLoad();
-								setIsFileMenuOpen(false);
-							}}
-						>
-							Load Project
-						</button>
-					</div>
-				)}
+				<div className="file-menu-container" ref={menuRef}>
+					<button
+						className="file-tab-btn"
+						onClick={() => setIsFileMenuOpen(!isFileMenuOpen)}
+					>
+						<File size={20} />
+					</button>
+					{isFileMenuOpen && (
+						<div className="file-menu">
+							<button
+								className="file-menu-item"
+								onClick={() => {
+									onSave();
+									setIsFileMenuOpen(false);
+								}}
+							>
+								Save Project
+							</button>
+							<button
+								className="file-menu-item"
+								onClick={() => {
+									onLoad();
+									setIsFileMenuOpen(false);
+								}}
+							>
+								Load Project
+							</button>
+						</div>
+					)}
+				</div>
 			</div>
 
 			<div className="header-project-name">
