@@ -1,4 +1,5 @@
 import { useReducer, useState, useMemo, useCallback } from 'react';
+import { X } from 'lucide-react';
 import { SpriteContext, spriteReducer, initialSpriteState } from './lib/sprites';
 import HeaderBar from './components/HeaderBar';
 import SpritePanel from './components/SpritePanel';
@@ -127,7 +128,7 @@ export default function App() {
 						<div className="modal-content" onClick={(e) => e.stopPropagation()}>
 							<div className="modal-header">
 								<h2>Generated JavaScript</h2>
-								<button className="close-modal-btn" onClick={() => setShowJS(false)}>×</button>
+								<button className="close-modal-btn" onClick={() => setShowJS(false)}><X size={18} /></button>
 							</div>
 							<div className="modal-body">
 								<div className="code-container">
