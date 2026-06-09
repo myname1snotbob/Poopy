@@ -464,20 +464,20 @@ export default function StageView() {
 				finished = true;
 			});
 
-			while (!finished) {
+			while (true) {
+				await runtime.step();
+				if (finished) break;
 				layer.draw();
 				await captureFrame();
-				await runtime.step();
 
 				if (frameCounter > fps * 300) break;
 			}
 
-			if (frameCounter === 0) {
-				layer.draw();
-				await captureFrame();
-			}
-
 			runtime.disableStepping();
+
+            // YES. i know this approach sucks, but idk how to fix it, so THIS IS WHAT YOU GET
+			gifFrames = gifFrames.slice(0, -1);
+			videoFrames = videoFrames.slice(0, -1);
 
 			setIsEncoding(true);
 			setIsRecordModalOpen(true);
