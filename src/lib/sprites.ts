@@ -10,7 +10,7 @@ export interface TextSpriteData {
 	align: 'left' | 'center' | 'right';
 }
 
-export const DEFAULT_MEDIA_SRC = '/default_sprite.svg';
+export const DEFAULT_MEDIA_SRC = 'default_sprite.svg';
 
 export interface MediaImage {
 	id: string;
