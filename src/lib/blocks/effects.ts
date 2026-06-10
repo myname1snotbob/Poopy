@@ -196,7 +196,7 @@ Blockly.Blocks["effects_set_canvas"] = {
 javascriptGenerator.forBlock["effects_set_canvas"] = function (block: Blockly.Block) {
   const effect = block.getFieldValue("EFFECT");
   const val = javascriptGenerator.valueToCode(block, "VALUE", Order.ATOMIC) || "0";
-  return `window.RUNTIME && window.RUNTIME.setCanvasEffect(${JSON.stringify(effect)}, (${val}));\n`;
+  return `window.RUNTIME.setCanvasEffect(${JSON.stringify(effect)}, (${val}));\n`;
 };
 
 Blockly.Blocks["effects_get_canvas"] = {
@@ -212,7 +212,7 @@ Blockly.Blocks["effects_get_canvas"] = {
 
 javascriptGenerator.forBlock["effects_get_canvas"] = function (block: Blockly.Block) {
   const effect = block.getFieldValue("EFFECT");
-  return [`(window.RUNTIME && window.RUNTIME.getCanvasEffect(${JSON.stringify(effect)}))`, Order.ATOMIC];
+  return [`window.RUNTIME.getCanvasEffect(${JSON.stringify(effect)})`, Order.ATOMIC];
 };
 
 Blockly.Blocks["effects_clear_canvas"] = {
@@ -226,7 +226,7 @@ Blockly.Blocks["effects_clear_canvas"] = {
 };
 
 javascriptGenerator.forBlock["effects_clear_canvas"] = function () {
-  return `window.RUNTIME && window.RUNTIME.clearCanvasEffects();\n`;
+  return `window.RUNTIME.clearCanvasEffects();\n`;
 };
 
 Blockly.Blocks["effects_change_canvas"] = {
@@ -247,5 +247,5 @@ Blockly.Blocks["effects_change_canvas"] = {
 javascriptGenerator.forBlock["effects_change_canvas"] = function (block: Blockly.Block) {
   const effect = block.getFieldValue("EFFECT");
   const delta = javascriptGenerator.valueToCode(block, "DELTA", Order.ATOMIC) || "0";
-  return `window.RUNTIME && window.RUNTIME.changeCanvasEffect(${JSON.stringify(effect)}, (${delta}));\n`;
+  return `window.RUNTIME.changeCanvasEffect(${JSON.stringify(effect)}, (${delta}));\n`;
 };

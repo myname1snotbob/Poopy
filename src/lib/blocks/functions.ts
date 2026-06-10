@@ -29,9 +29,9 @@ Blockly.Blocks["functions_execute"] = {
 };
 
 javascriptGenerator.forBlock["functions_execute"] = function (block: Blockly.Block) {
-    const fn = javascriptGenerator.valueToCode(block, "FUNC", Order.NONE) || "(() => {})";
+    const fn = javascriptGenerator.valueToCode(block, "FUNC", Order.ATOMIC) || "(() => {})";
     const code = `(${fn})()`;
-    return block.outputConnection?.getSourceBlock() ? [code, Order.FUNCTION_CALL] : code;
+    return block.outputConnection?.getSourceBlock() ? [code, Order.ATOMIC] : code;
 };
 
 Blockly.Blocks["functions_return"] = {

@@ -1080,7 +1080,6 @@ body {
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  backdrop-filter: blur(4px);
   animation: modal-overlay-in 0.1s ease-out;
 }
 
