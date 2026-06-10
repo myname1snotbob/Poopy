@@ -5,8 +5,6 @@ type ColorPickerOptions = Parameters<typeof iro.ColorPicker>[1];
 
 const defaultColor = "#FF00FF";
 
-const size = 24;
-
 export default class ColorWheelField extends Field {
     static SERIALIZABLE = true;
     SERIALIZABLE = true;
