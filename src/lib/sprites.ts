@@ -8,11 +8,20 @@ export interface TextSpriteData {
 	fontWeight: number;
 	color: string;
 	align: 'left' | 'center' | 'right';
+	sounds: MediaSound[];
+	currentSoundId: string | null;
 }
 
 export const DEFAULT_MEDIA_SRC = 'default_sprite.svg';
+export const DEFAULT_SOUND_SRC = 'default_sound.mp3';
 
 export interface MediaImage {
+	id: string;
+	name: string;
+	src: string;
+}
+
+export interface MediaSound {
 	id: string;
 	name: string;
 	src: string;
@@ -21,6 +30,8 @@ export interface MediaImage {
 export interface MediaSpriteData {
 	images: MediaImage[];
 	currentImageId: string | null;
+	sounds: MediaSound[];
+	currentSoundId: string | null;
 }
 
 export type SpriteData = TextSpriteData | MediaSpriteData;
@@ -71,7 +82,12 @@ export function generateMediaImageId(): string {
 	return `image_${Date.now()}_${nextId++}`;
 }
 
+export function generateMediaSoundId(): string {
+	return `sound_${Date.now()}_${nextId++}`;
+}
+
 export function createTextSprite(name: string): Sprite {
+	const soundId = generateMediaSoundId();
 	return {
 		id: generateSpriteId(),
 		name,
@@ -95,12 +111,15 @@ export function createTextSprite(name: string): Sprite {
 			fontWeight: 400,
 			color: '#c6daf7',
 			align: 'center',
+			sounds: [{ id: soundId, name: 'Sound 1', src: DEFAULT_SOUND_SRC }],
+			currentSoundId: soundId,
 		} as TextSpriteData,
 	};
 }
 
 export function createMediaSprite(name: string): Sprite {
 	const imageId = generateMediaImageId();
+	const soundId = generateMediaSoundId();
 	return {
 		id: generateSpriteId(),
 		name,
@@ -120,6 +139,8 @@ export function createMediaSprite(name: string): Sprite {
 		data: {
 			images: [{ id: imageId, name: 'Image 1', src: DEFAULT_MEDIA_SRC }],
 			currentImageId: imageId,
+			sounds: [{ id: soundId, name: 'Sound 1', src: DEFAULT_SOUND_SRC }],
+			currentSoundId: soundId,
 		} as MediaSpriteData,
 	};
 }

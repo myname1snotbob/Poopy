@@ -1,5 +1,5 @@
-import { Image, Plus, Trash2, Upload } from 'lucide-react';
-import { useSprites, isTextData, isMediaData, generateMediaImageId, type TextSpriteData, type MediaSpriteData } from '../lib/sprites';
+import { Image, Music, Plus, Trash2, Upload, Volume2 } from 'lucide-react';
+import { useSprites, isTextData, isMediaData, generateMediaImageId, generateMediaSoundId, type TextSpriteData, type MediaSpriteData } from '../lib/sprites';
 import { useEffect, useState } from 'react';
 import { getAvailableFonts, COMMON_FONTS, detectAvailableFonts, requestFontAccess, getFontPermissionState } from '../lib/fonts';
 import { TWEEN_MODE_OPTIONS, TWEENABLE_PROPERTY_OPTIONS, type TweenMode } from '../lib/tween';
@@ -13,6 +13,15 @@ export default function PropertiesPanel() {
 	const [fonts, setFonts] = useState<string[]>([]);
 	const [fontPermission, setFontPermission] = useState<'granted' | 'denied' | 'prompt' | 'unknown'>('unknown');
 	const [requestingFonts, setRequestingFonts] = useState(false);
+	const [activeAssetType, setActiveAssetType] = useState<'images' | 'sounds'>('images');
+
+	useEffect(() => {
+		if (sprite.type === 'text') {
+			setActiveAssetType('sounds');
+		} else if (sprite.type === 'media' && activeAssetType === 'images') {
+			// keep imgs
+		}
+	}, [sprite.id, sprite.type]);
 
 	useEffect(() => {
 		let mounted = true;
@@ -72,34 +81,67 @@ export default function PropertiesPanel() {
 		const reader = new FileReader();
 		reader.onload = () => {
 			const src = String(reader.result ?? '');
-			const image = new window.Image();
-			image.onload = () => {
-				if (!isMediaData(sprite.data)) return;
-				const nextData: MediaSpriteData = {
-					...sprite.data,
-					currentImageId: imageId,
-					images: sprite.data.images.map((image) =>
-						image.id === imageId
-							? { ...image, src, name: image.name || file.name.replace(/\.[^.]+$/, '') || 'Image' }
-							: image
-					),
+			const isVideo = file.type.startsWith('video/');
+
+			if (isVideo) {
+				const video = document.createElement('video');
+				video.src = src;
+				video.onloadedmetadata = () => {
+					if (!isMediaData(sprite.data)) return;
+					const nextData: MediaSpriteData = {
+						...sprite.data,
+						currentImageId: imageId,
+						images: sprite.data.images.map((image) =>
+							image.id === imageId
+								? { ...image, src, name: image.name || file.name.replace(/\.[^.]+$/, '') || 'Video' }
+								: image
+						),
+					};
+					updateMediaData(nextData, {
+						width: Math.max(5, video.videoWidth || sprite.width),
+						height: Math.max(5, video.videoHeight || sprite.height),
+					});
 				};
-				updateMediaData(nextData, {
-					width: Math.max(5, image.naturalWidth || sprite.width),
-					height: Math.max(5, image.naturalHeight || sprite.height),
-				});
-			};
-			image.onerror = () => {
-				if (!isMediaData(sprite.data)) return;
-				updateMediaData({
-					...sprite.data,
-					currentImageId: imageId,
-					images: sprite.data.images.map((image) =>
-						image.id === imageId ? { ...image, src } : image
-					),
-				});
-			};
-			image.src = src;
+				video.onerror = () => {
+					if (!isMediaData(sprite.data)) return;
+					updateMediaData({
+						...sprite.data,
+						currentImageId: imageId,
+						images: sprite.data.images.map((image) =>
+							image.id === imageId ? { ...image, src } : image
+						),
+					});
+				};
+			} else {
+				const image = new window.Image();
+				image.onload = () => {
+					if (!isMediaData(sprite.data)) return;
+					const nextData: MediaSpriteData = {
+						...sprite.data,
+						currentImageId: imageId,
+						images: sprite.data.images.map((image) =>
+							image.id === imageId
+								? { ...image, src, name: image.name || file.name.replace(/\.[^.]+$/, '') || 'Image' }
+								: image
+						),
+					};
+					updateMediaData(nextData, {
+						width: Math.max(5, image.naturalWidth || sprite.width),
+						height: Math.max(5, image.naturalHeight || sprite.height),
+					});
+				};
+				image.onerror = () => {
+					if (!isMediaData(sprite.data)) return;
+					updateMediaData({
+						...sprite.data,
+						currentImageId: imageId,
+						images: sprite.data.images.map((image) =>
+							image.id === imageId ? { ...image, src } : image
+						),
+					});
+				};
+				image.src = src;
+			}
 		};
 		reader.readAsDataURL(file);
 	};
@@ -107,10 +149,39 @@ export default function PropertiesPanel() {
 	const openImagePicker = (imageId: string) => {
 		const input = document.createElement('input');
 		input.type = 'file';
-		input.accept = 'image/*,.svg';
+		input.accept = 'image/*,video/*,.svg';
 		input.onchange = () => {
 			const file = input.files?.[0];
 			if (file) readImageFile(file, imageId);
+		};
+		input.click();
+	};
+
+	const readSoundFile = (file: File, soundId: string) => {
+		const reader = new FileReader();
+		reader.onload = () => {
+			const src = String(reader.result ?? '');
+			const nextData = {
+				...sprite.data,
+				currentSoundId: soundId,
+				sounds: sprite.data.sounds.map((sound: any) =>
+					sound.id === soundId
+						? { ...sound, src, name: sound.name || file.name.replace(/\.[^.]+$/, '') || 'Sound' }
+						: sound
+				),
+			};
+			updateData(nextData);
+		};
+		reader.readAsDataURL(file);
+	};
+
+	const openSoundPicker = (soundId: string) => {
+		const input = document.createElement('input');
+		input.type = 'file';
+		input.accept = 'audio/*';
+		input.onchange = () => {
+			const file = input.files?.[0];
+			if (file) readSoundFile(file, soundId);
 		};
 		input.click();
 	};
@@ -132,82 +203,187 @@ export default function PropertiesPanel() {
 		</div>
 	);
 
-	const mediaSection = isMediaData(sprite.data) ? (() => {
-		const d = sprite.data as MediaSpriteData;
-		const activeImage = d.images.find((image) => image.id === d.currentImageId) ?? d.images[0];
-		const addImage = () => {
-			const id = generateMediaImageId();
-			updateMediaData({
-				...d,
-				images: [...d.images, { id, name: `Image ${d.images.length + 1}`, src: '' }],
-				currentImageId: id,
-			});
+	const mediaSection = (() => {
+		const d = sprite.data as any;
+		const hasImages = isMediaData(sprite.data);
+		const hasSounds = Boolean(d.sounds);
+
+		if (!hasImages && !hasSounds) return null;
+
+		const currentType = (!hasImages) ? 'sounds' : activeAssetType;
+
+		const items = currentType === 'images' ? (d.images || []) : (d.sounds || []);
+		const currentId = currentType === 'images' ? d.currentImageId : d.currentSoundId;
+		const activeItem = items.find((i: any) => i.id === currentId) ?? items[0];
+
+		const onSelect = (id: string) => {
+			if (currentType === 'images') updateData({ currentImageId: id });
+			else updateData({ currentSoundId: id });
 		};
-		const removeImage = (imageId: string) => {
-			const nextImages = d.images.length > 1
-				? d.images.filter((image) => image.id !== imageId)
-				: d.images.map((image) => image.id === imageId ? { ...image, src: '' } : image);
-			const nextCurrent = nextImages.some((image) => image.id === d.currentImageId)
-				? d.currentImageId
-				: nextImages[0]?.id ?? null;
-			updateMediaData({ ...d, images: nextImages, currentImageId: nextCurrent });
+
+		const onAdd = () => {
+			if (currentType === 'images') {
+				const id = generateMediaImageId();
+				updateMediaData({
+					...d,
+					images: [...d.images, { id, name: `Image ${d.images.length + 1}`, src: '' }],
+					currentImageId: id,
+				});
+			} else {
+				const id = generateMediaSoundId();
+				updateData({
+					sounds: [...d.sounds, { id, name: `Sound ${d.sounds.length + 1}`, src: '' }],
+					currentSoundId: id,
+				});
+			}
 		};
-		const updateImage = (imageId: string, changes: Record<string, unknown>) => {
-			updateMediaData({
-				...d,
-				images: d.images.map((image) =>
-					image.id === imageId ? { ...image, ...changes } : image
-				),
-			});
+
+		const onRemove = (id: string) => {
+			if (currentType === 'images') {
+				const nextImages = d.images.length > 1
+					? d.images.filter((image: any) => image.id !== id)
+					: d.images.map((image: any) => image.id === id ? { ...image, src: '' } : image);
+				const nextCurrent = nextImages.some((image: any) => image.id === d.currentImageId)
+					? d.currentImageId
+					: nextImages[0]?.id ?? null;
+				updateMediaData({ ...d, images: nextImages, currentImageId: nextCurrent });
+			} else {
+				const nextSounds = d.sounds.length > 1
+					? d.sounds.filter((sound: any) => sound.id !== id)
+					: d.sounds.map((sound: any) => sound.id === id ? { ...sound, src: '' } : sound);
+				const nextCurrent = nextSounds.some((sound: any) => sound.id === d.currentSoundId)
+					? d.currentSoundId
+					: nextSounds[0]?.id ?? null;
+				updateData({ sounds: nextSounds, currentSoundId: nextCurrent });
+			}
 		};
+
+		const onUpdateItem = (id: string, changes: any) => {
+			if (currentType === 'images') {
+				updateMediaData({
+					...d,
+					images: d.images.map((image: any) =>
+						image.id === id ? { ...image, ...changes } : image
+					),
+				});
+			} else {
+				updateData({
+					sounds: d.sounds.map((sound: any) =>
+						sound.id === id ? { ...sound, ...changes } : sound
+					),
+				});
+			}
+		};
+
+		const onReplace = (id: string) => {
+			if (currentType === 'images') openImagePicker(id);
+			else openSoundPicker(id);
+		};
+
+		const onPlay = (src: string) => {
+			if (!src) return;
+			const audio = new Audio(src);
+			audio.play().catch(console.warn);
+		};
+
 		return (
 			<div className="properties-section">
-				<div className="properties-section-title">Media</div>
+				<div className="properties-section-title">
+					<div style={{ display: 'flex', gap: '8px', alignItems: 'center', width: '100%' }}>
+						<span style={{ flex: 1 }}>Media</span>
+						{hasImages && hasSounds && (
+							<div style={{ display: 'flex', background: 'var(--bg-secondary)', padding: '2px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+								<button
+									className="properties-btn"
+									style={{
+										height: '22px',
+										padding: '0 8px',
+										border: 'none',
+										background: currentType === 'images' ? 'var(--bg-surface)' : 'transparent',
+										color: currentType === 'images' ? 'var(--text-primary)' : 'var(--text-muted)',
+										fontSize: '10px',
+										fontWeight: 600,
+										minWidth: '60px'
+									}}
+									onClick={() => setActiveAssetType('images')}
+								>
+									Images
+								</button>
+								<button
+									className="properties-btn"
+									style={{
+										height: '22px',
+										padding: '0 8px',
+										border: 'none',
+										background: currentType === 'sounds' ? 'var(--bg-surface)' : 'transparent',
+										color: currentType === 'sounds' ? 'var(--text-primary)' : 'var(--text-muted)',
+										fontSize: '10px',
+										fontWeight: 600,
+										minWidth: '60px'
+									}}
+									onClick={() => setActiveAssetType('sounds')}
+								>
+									Sounds
+								</button>
+							</div>
+						)}
+					</div>
+				</div>
+
 				<div className="media-tabs">
-					{d.images.map((image) => (
+					{items.map((item: any) => (
 						<button
-							key={image.id}
-							className={`media-tab ${image.id === activeImage?.id ? 'selected' : ''}`}
-							onClick={() => updateData({ currentImageId: image.id })}
-							title={image.name}
+							key={item.id}
+							className={`media-tab ${item.id === activeItem?.id ? 'selected' : ''}`}
+							onClick={() => onSelect(item.id)}
+							title={item.name}
 						>
-							{image.src ? (
-								<img src={image.src} alt="" />
+							{currentType === 'images' ? (
+								item.src ? <img src={item.src} alt="" /> : <Image size={16} />
 							) : (
-								<Image size={16} />
+								<Music size={16} />
 							)}
 						</button>
 					))}
-					<button className="media-tab add" onClick={addImage} title="Add image">
+					<button className="media-tab add" onClick={onAdd} title={`Add ${currentType === 'images' ? 'image' : 'sound'}`}>
 						<Plus size={16} />
 					</button>
 				</div>
-				{activeImage && (
+
+				{activeItem && (
 					<>
-						<div className="media-preview">
-							{activeImage.src ? (
-								<img src={activeImage.src} alt="" />
-							) : (
-								<Image size={26} />
-							)}
-						</div>
+						{currentType === 'images' && (
+							<div className="media-preview">
+								{activeItem.src ? (
+									<img src={activeItem.src} alt="" />
+								) : (
+									<Image size={26} />
+								)}
+							</div>
+						)}
 						<div className="properties-row">
 							<span className="properties-label">Name</span>
 							<input
 								className="properties-input"
 								type="text"
-								value={activeImage.name}
-								onChange={(e) => updateImage(activeImage.id, { name: e.target.value })}
+								value={activeItem.name}
+								onChange={(e) => onUpdateItem(activeItem.id, { name: e.target.value })}
 							/>
 						</div>
 						<div className="media-actions">
-							<button className="properties-btn" onClick={() => openImagePicker(activeImage.id)}>
+							<button className="properties-btn" onClick={() => onReplace(activeItem.id)}>
 								<Upload size={14} /> Replace
 							</button>
-							<button className="properties-btn" onClick={() => updateImage(activeImage.id, { src: '' })}>
-								Clear
-							</button>
-							<button className="properties-btn danger" onClick={() => removeImage(activeImage.id)}>
+							{currentType === 'images' ? (
+								<button className="properties-btn" onClick={() => onUpdateItem(activeItem.id, { src: '' })}>
+									Clear
+								</button>
+							) : (
+								<button className="properties-btn" onClick={() => onPlay(activeItem.src)} disabled={!activeItem.src}>
+									<Volume2 size={14} /> Play
+								</button>
+							)}
+							<button className="properties-btn danger" onClick={() => onRemove(activeItem.id)}>
 								<Trash2 size={14} /> Remove
 							</button>
 						</div>
@@ -215,7 +391,7 @@ export default function PropertiesPanel() {
 				)}
 			</div>
 		);
-	})() : null;
+	})();
 
 	return (
 		<div className="properties-panel" style={{ flexShrink: 0, borderBottom: '1px solid var(--border-subtle)' }}>

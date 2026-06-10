@@ -5,11 +5,13 @@ import {
 	WebMOutputFormat,
 	VideoSampleSource,
 	VideoSample,
+	AudioSampleSource,
+	AudioSample,
 } from 'mediabunny';
 import { GIFEncoder, quantize, applyPalette } from 'gifenc';
 
 self.onmessage = async (e: MessageEvent) => {
-	const { options, frames, fps, width, height } = e.data;
+	const { options, frames, audioSamples, sampleRate, fps, width, height } = e.data;
 
 	try {
 		if (options.format === 'gif') {
@@ -62,7 +64,19 @@ self.onmessage = async (e: MessageEvent) => {
 			latencyMode: options.quality,
 		});
 
+		const hasAudio = Array.isArray(audioSamples) && audioSamples.length > 0;
+
+		const audioSource = hasAudio
+			? new AudioSampleSource({
+				codec: isMP4 ? 'aac' : 'opus',
+				sampleRate,
+				numberOfChannels: 2,
+				bitrate: 192000,
+			})
+			: null;
+
 		output.addVideoTrack(videoSource);
+		if (audioSource) output.addAudioTrack(audioSource);
 		await output.start();
 
 		for (let i = 0; i < frames.length; i++) {
@@ -74,12 +88,25 @@ self.onmessage = async (e: MessageEvent) => {
 			sample.close();
 			bitmap.close();
 
+			if (audioSource && audioSamples[i]) {
+				const pcm = audioSamples[i] as Float32Array;
+				const audioSample = new AudioSample({
+					format: 'f32-planar',
+					sampleRate,
+					numberOfChannels: 2,
+					timestamp,
+					data: pcm.buffer,
+				});
+				await audioSource.add(audioSample);
+			}
+
 			if (i % 10 === 0) {
 				self.postMessage({ type: 'progress', progress: (i / frames.length) * 100 });
 			}
 		}
 
 		videoSource.close();
+		if (audioSource) audioSource.close();
 		await output.finalize();
 
 		const buffer = target.buffer as ArrayBuffer;

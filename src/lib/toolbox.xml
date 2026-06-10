@@ -197,7 +197,11 @@
     <block type="layers_setZIndex"><value name="Z"><shadow type="math_number"><field name="NUM">0</field></shadow></value></block>
     <block type="layers_getZIndex"></block>
   </category>
-  <category name="Audio" categorystyle="audio_blocks"></category>
+  <category name="Audio" categorystyle="audio_blocks">
+    <block type="audio_play"></block>
+    <block type="audio_playUntilDone"></block>
+    <block type="audio_stopAll"></block>
+  </category>
   <category name="Variables" categorystyle="variable_blocks" custom="VARIABLE"></category>
   <category name="Functions" categorystyle="procedure_blocks">
     <block type="functions_lambda"></block>

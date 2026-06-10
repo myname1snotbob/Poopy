@@ -175,7 +175,7 @@ function StageROT({width, height}: {width:number, height:number}) { // maybe?
 	return <>{lines}</>;
 }
 
-function SpriteRenderer({ sprite, isSelected, showTransformer, onSelect, onNodeReady, stageCoords, snapToGrid, gridSize }: {
+function SpriteRenderer({ sprite, isSelected, showTransformer, onSelect, onNodeReady, stageCoords, snapToGrid, gridSize, isPlaying }: {
 	sprite: Sprite;
 	isSelected: boolean;
 	showTransformer: boolean;
@@ -184,6 +184,7 @@ function SpriteRenderer({ sprite, isSelected, showTransformer, onSelect, onNodeR
 	stageCoords: ReturnType<typeof createStageCoords>;
 	snapToGrid: boolean;
 	gridSize: number;
+	isPlaying: boolean;
 }) {
 	const { toCanvasX, toCanvasY, fromCanvasX, fromCanvasY } = stageCoords;
 	const nodeRef = useRef<Konva.Node | null>(null);
@@ -194,26 +195,93 @@ function SpriteRenderer({ sprite, isSelected, showTransformer, onSelect, onNodeR
 		? mediaData.images.find((image) => image.id === mediaData.currentImageId) ?? mediaData.images[0]
 		: null;
 	const mediaSrc = activeImage?.src ?? '';
-	const [mediaImage, setMediaImage] = useState<HTMLImageElement | null>(null);
+	const [mediaElement, setMediaElement] = useState<HTMLImageElement | HTMLVideoElement | null>(null);
+
+	const isVideo = useMemo(() => {
+		if (!mediaSrc) return false;
+		if (mediaSrc.startsWith('data:video/')) return true;
+		return /\.(mp4|webm|ogg|mov)$/i.test(mediaSrc);
+	}, [mediaSrc]);
 
 	useEffect(() => {
 		if (!mediaSrc) {
-			setMediaImage(null);
+			setMediaElement(null);
 			return;
 		}
+
 		let mounted = true;
-		const image = new window.Image();
-		image.onload = () => {
-			if (mounted) setMediaImage(image);
-		};
-		image.onerror = () => {
-			if (mounted) setMediaImage(null);
-		};
-		image.src = mediaSrc;
-		return () => {
-			mounted = false;
-		};
-	}, [mediaSrc]);
+
+		if (isVideo) {
+			const video = document.createElement('video');
+			video.src = mediaSrc;
+			video.muted = true;
+			video.loop = true;
+			video.playsInline = true;
+			video.crossOrigin = 'anonymous';
+			
+			const onCanPlay = () => {
+				if (mounted) {
+					setMediaElement(video);
+				}
+			};
+			video.addEventListener('canplay', onCanPlay);
+			video.load();
+
+			return () => {
+				mounted = false;
+				video.removeEventListener('canplay', onCanPlay);
+				video.pause();
+				video.src = '';
+				video.load();
+			};
+		} else {
+			const image = new window.Image();
+			image.onload = () => {
+				if (mounted) setMediaElement(image);
+			};
+			image.onerror = () => {
+				if (mounted) setMediaElement(null);
+			};
+			image.src = mediaSrc;
+			return () => {
+				mounted = false;
+			};
+		}
+	}, [mediaSrc, isVideo]);
+
+	useEffect(() => {
+		if (isVideo && mediaElement instanceof HTMLVideoElement) {
+			if (isPlaying) {
+				const updateVideo = () => {
+					if (!isPlaying) return;
+					
+					const rt = (window as any).RUNTIME;
+					if (rt && rt.isStepping) {
+						mediaElement.currentTime = rt.virtualTime / 1000;
+					} else {
+						if (mediaElement.paused) mediaElement.play().catch(() => {});
+					}
+					
+					const layer = nodeRef.current?.getLayer();
+					if (layer) layer.batchDraw();
+					
+					if (isPlaying && !rt.isStepping) {
+						requestAnimationFrame(updateVideo);
+					}
+				};
+				
+				const rt = (window as any).RUNTIME;
+				if (rt && rt.isStepping) {
+					mediaElement.currentTime = rt.virtualTime / 1000;
+				} else {
+					requestAnimationFrame(updateVideo);
+				}
+			} else {
+				mediaElement.pause();
+				mediaElement.currentTime = 0;
+			}
+		}
+	}, [isPlaying, mediaElement, isVideo]);
 
 	useEffect(() => {
 		onNodeReady(sprite.id, nodeRef.current);
@@ -352,19 +420,19 @@ function SpriteRenderer({ sprite, isSelected, showTransformer, onSelect, onNodeR
 					y={0}
 					width={sprite.width}
 					height={sprite.height}
-					fill={mediaImage ? 'transparent' : 'rgba(255,255,255,0.01)'}
-					stroke={mediaImage ? undefined : isSelected ? '#a63ef5' : 'rgba(255,255,255,0.16)'}
-					strokeWidth={mediaImage ? 0 : 1}
-					dash={mediaImage ? undefined : [8, 5]}
+					fill={mediaElement ? 'transparent' : 'rgba(255,255,255,0.01)'}
+					stroke={mediaElement ? undefined : isSelected ? '#a63ef5' : 'rgba(255,255,255,0.16)'}
+					strokeWidth={mediaElement ? 0 : 1}
+					dash={mediaElement ? undefined : [8, 5]}
 					cornerRadius={4}
 				/>
-				{mediaImage && (
+				{mediaElement && (
 					<KonvaImage
 						x={0}
 						y={0}
 						width={sprite.width}
 						height={sprite.height}
-						image={mediaImage}
+						image={mediaElement}
 						listening={false}
 					/>
 				)}
@@ -474,13 +542,19 @@ export default function StageView() {
 		setExportProgress(0);
 
 		let videoFrames: ImageBitmap[] = [];
+		let audioSamples: Float32Array[] = [];
 		let frameCounter = 0;
+		const sampleRate = 44100;
 
 		try {
 			const captureFrame = async () => {
 				try {
 					const bitmap = await createImageBitmap(canvas);
 					videoFrames.push(bitmap);
+					
+					const samples = runtime.getAudioSamples(1 / fps, sampleRate);
+					audioSamples.push(samples);
+					
 					frameCounter++;
 				} catch (e) {
 					console.error(e);
@@ -524,14 +598,18 @@ export default function StageView() {
 				worker.postMessage({
 					options,
 					frames: videoFrames,
+					audioSamples,
+					sampleRate,
 					width: physicalWidth,
 					height: physicalHeight,
 					fps
-				}, videoFrames);
+				}, [...videoFrames, ...audioSamples.map(a => a.buffer)]);
 			});
 
 			worker.terminate();
-			downloadBlob(new Blob([buffer], { type: options.format === 'gif' ? 'image/gif' : (options.format === 'mp4' ? 'video/mp4' : 'video/webm') }), `export.${options.format}`);
+			const now = new Date();
+			const ts = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+			downloadBlob(new Blob([buffer], { type: options.format === 'gif' ? 'image/gif' : (options.format === 'mp4' ? 'video/mp4' : 'video/webm') }), `export_${ts}.${options.format}`);
 		} catch (err) {
 			console.error(err);
 			alert('Export failed');
@@ -613,6 +691,8 @@ export default function StageView() {
 			state.sprites.forEach(sprite => {
 				if (!sprite.blocklyXml) return;
 				const tempWorkspace = new Blockly.Workspace();
+				(tempWorkspace as any).sprites = state.sprites;
+				(tempWorkspace as any).spriteId = sprite.id;
 				try {
 					const dom = Blockly.utils.xml.textToDom(sprite.blocklyXml);
 					Blockly.Xml.domToWorkspace(dom, tempWorkspace);
@@ -827,6 +907,9 @@ export default function StageView() {
 						const media = current.data;
 						const image = media.images.find((entry) => entry.id === media.currentImageId) ?? media.images[0];
 						return image?.name ?? '';
+					}
+					if (property === 'sounds') {
+						return current?.data.sounds ?? [];
 					}
 					return target[property as keyof typeof target];
 				},
@@ -1045,6 +1128,7 @@ export default function StageView() {
 									stageCoords={stageCoords}
 									snapToGrid={settings.snapToGrid}
 									gridSize={settings.gridSize}
+									isPlaying={isPlaying}
 								/>
 							))}
 						</Layer>

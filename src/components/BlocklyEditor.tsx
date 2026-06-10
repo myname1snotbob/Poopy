@@ -89,6 +89,43 @@ export default function BlocklyEditor() {
 	const [toolboxWidth, setToolboxWidth] = useState(0);
 
 	useEffect(() => {
+		if (workspaceRef.current) {
+			const workspace = workspaceRef.current;
+			(workspace as any).sprites = state.sprites;
+			(workspace as any).spriteId = selectedSpriteId;
+			
+			const flyoutWorkspace = getFlyoutWorkspace(workspace);
+			if (flyoutWorkspace) {
+				(flyoutWorkspace as any).sprites = state.sprites;
+				(flyoutWorkspace as any).spriteId = selectedSpriteId;
+			}
+			
+			const blocks = workspace.getAllBlocks(false);
+			for (const block of blocks) {
+				for (const input of block.inputList) {
+					for (const field of input.fieldRow) {
+						if (field instanceof Blockly.FieldDropdown) {
+							try {
+								// @ts-ignore
+								const options = field.getOptions(false);
+								const value = field.getValue();
+								
+								if (value === "" && options.length > 0 && options[0][1] !== "") {
+									field.setValue(options[0][1]);
+								} else if (value !== null && value !== undefined) {
+									field.setValue(value);
+								}
+							} catch (e) {
+								console.warn("Failed to refresh dropdown field:", e);
+							}
+						}
+					}
+				}
+			}
+		}
+	}, [state.sprites, selectedSpriteId]);
+
+	useEffect(() => {
 		const blocklyDiv = blocklyDivRef.current;
 		if (!blocklyDiv) return;
 
@@ -98,6 +135,8 @@ export default function BlocklyEditor() {
 
 		const workspace = Blockly.inject(blocklyDiv, workspaceConfig);
 		workspaceRef.current = workspace;
+		(workspace as any).spriteId = selectedSpriteId;
+		(workspace as any).sprites = state.sprites;
 		if (selectedSprite) {
 			workspace.updateToolbox(buildToolboxForSource(getSourceTypeForSprite(selectedSprite.type)));
 		}
@@ -198,6 +237,8 @@ export default function BlocklyEditor() {
 		if (selectedSpriteId === loadedSpriteIdRef.current && state.loadKey === lastLoadKeyRef.current) return;
 
 		isSwappingRef.current = true;
+		(workspace as any).spriteId = selectedSpriteId;
+		(workspace as any).sprites = state.sprites;
 		workspace.clear();
 
 		const activeSprite = state.sprites.find(s => s.id === selectedSpriteId);

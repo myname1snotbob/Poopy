@@ -52,6 +52,8 @@ export interface SpriteContext {
         color?: string;
         tweenMode?: TweenMode;
         tweenModes?: Partial<Record<TweenableProperty, TweenMode>>;
+        sounds?: { id: string; name: string; src: string }[];
+        currentSoundId?: string | null;
     };
     spriteId?: string;
     dispatch?: Dispatch<SpriteAction>;
@@ -85,11 +87,105 @@ class Runtime {
     private frameRafId: number | null = null;
     private frameTimeoutId: ReturnType<typeof setTimeout> | null = null;
     private lastFrameTime = 0;
+    private activeAudio = new Set<HTMLAudioElement>();
 
     private isStepping = false;
-    private virtualTime = 0;
+    public virtualTime = 0;
     private virtualDelayWaiters = new Set<{ targetTime: number; resolve: () => void; reject: (e: Error) => void }>();
     private virtualFrameWaiters = new Set<{ resolve: () => void; reject: (e: Error) => void }>();
+
+    private audioContext: AudioContext | null = null;
+    private audioBufferCache: Map<string, AudioBuffer> = new Map();
+    private activePlayingSounds: Set<{ src: string; startVirtualTime: number; loop: boolean }> = new Set();
+    private activeSteppingNodes = new Set<AudioBufferSourceNode>();
+
+    private getAudioContext() {
+        if (!this.audioContext) {
+            this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        }
+        return this.audioContext;
+    }
+
+    async decodeAudio(src: string): Promise<AudioBuffer | null> {
+        if (this.audioBufferCache.has(src)) return this.audioBufferCache.get(src)!;
+
+        try {
+            const response = await fetch(src);
+            const arrayBuffer = await response.arrayBuffer();
+            const audioBuffer = await this.getAudioContext().decodeAudioData(arrayBuffer);
+            this.audioBufferCache.set(src, audioBuffer);
+            return audioBuffer;
+        } catch (e) {
+            console.error('Failed to decode audio:', src, e);
+            return null;
+        }
+    }
+
+    getAudioSamples(durationSec: number, sampleRate: number): Float32Array {
+        const numSamples = Math.floor(durationSec * sampleRate);
+        const left = new Float32Array(numSamples);
+        const right = new Float32Array(numSamples);
+
+        const mix = (ch0: Float32Array, ch1: Float32Array, srcSampleRate: number, startOffset: number, loop: boolean) => {
+            for (let i = 0; i < numSamples; i++) {
+                const time = startOffset + i / sampleRate;
+                if (time < 0) continue;
+
+                const pos = time * srcSampleRate;
+                const idx0 = Math.floor(pos);
+                const idx1 = idx0 + 1;
+                const t = pos - idx0;
+
+                const len = ch0.length;
+                const i0 = loop ? idx0 % len : idx0;
+                const i1 = loop ? idx1 % len : idx1;
+
+                if (i0 >= len) continue;
+                const s0L = ch0[i0];
+                const s1L = i1 < len ? ch0[i1] : s0L;
+                const s0R = ch1[i0];
+                const s1R = i1 < len ? ch1[i1] : s0R;
+
+                left[i] += s0L + (s1L - s0L) * t;
+                right[i] += s0R + (s1R - s0R) * t;
+            }
+        };
+
+        for (const sound of this.activePlayingSounds) {
+            const buffer = this.audioBufferCache.get(sound.src);
+            if (!buffer) continue;
+
+            const ch0 = buffer.getChannelData(0);
+            const ch1 = buffer.numberOfChannels > 1 ? buffer.getChannelData(1) : ch0;
+            const startOffset = (this.virtualTime - sound.startVirtualTime) / 1000;
+            mix(ch0, ch1, buffer.sampleRate, startOffset, sound.loop);
+        }
+
+        for (const [id] of this.sprites.entries()) {
+            const spriteData = (this.getSprites?.().find(s => s.id === id)?.data) as any;
+            if (!spriteData || !spriteData.images || !spriteData.currentImageId) continue;
+
+            const image = spriteData.images.find((img: any) => img.id === spriteData.currentImageId);
+            if (!image || !image.src) continue;
+
+            if (image.src.startsWith('data:video/') || /\.(mp4|webm|ogg|mov)$/i.test(image.src)) {
+                const buffer = this.audioBufferCache.get(image.src);
+                if (!buffer) {
+                    this.decodeAudio(image.src);
+                    continue;
+                }
+
+                const ch0 = buffer.getChannelData(0);
+                const ch1 = buffer.numberOfChannels > 1 ? buffer.getChannelData(1) : ch0;
+                mix(ch0, ch1, buffer.sampleRate, this.virtualTime / 1000, true);
+            }
+        }
+
+        const stereo = new Float32Array(numSamples * 2);
+        stereo.set(left, 0);
+        stereo.set(right, numSamples);
+        return stereo;
+    }
 
     setFps(fps: number) {
         this.fps = Math.max(1, fps);
@@ -318,6 +414,8 @@ class Runtime {
             clearTimeout(id);
         }
         this.activeTimeouts.clear();
+        this.stopAllSounds();
+        this.activePlayingSounds.clear();
         this.cancelFrameTick();
         for (const waiter of this.frameWaiters) {
             waiter.reject(new StopError());
@@ -342,6 +440,94 @@ class Runtime {
         }
         this.pauseResolvers.clear();
         this.clearHandlers();
+    }
+
+    async playSound(src: string, loop: boolean = false, id?: string): Promise<void> {
+        if (this.stopped || !src) return;
+
+        if (this.isStepping) {
+            const buffer = await this.decodeAudio(src);
+            const soundEntry = { src, startVirtualTime: this.virtualTime, loop };
+            this.activePlayingSounds.add(soundEntry);
+
+            if (buffer) {
+                const ctx = this.getAudioContext();
+                const node = ctx.createBufferSource();
+                node.buffer = buffer;
+                node.loop = loop;
+                node.connect(ctx.destination);
+                node.start();
+                this.activeSteppingNodes.add(node);
+                node.onended = () => this.activeSteppingNodes.delete(node);
+            }
+            return;
+        }
+
+        const audio = new Audio(src);
+        audio.loop = loop;
+        this.activeAudio.add(audio);
+
+        return new Promise((resolve, reject) => {
+            const cleanup = () => {
+                this.activeAudio.delete(audio);
+                audio.removeEventListener('ended', onEnded);
+                audio.removeEventListener('error', onError);
+            };
+
+            const onEnded = () => {
+                cleanup();
+                resolve();
+            };
+
+            const onError = (e: Event) => {
+                cleanup();
+                console.error(`audio playback error for sound "${id || 'unknown'}" (src: ${src}):`, e);
+                resolve();
+            };
+
+            audio.addEventListener('ended', onEnded);
+            audio.addEventListener('error', onError);
+
+            audio.play().catch(e => {
+                cleanup();
+                if (e.name === 'NotAllowedError') {
+                    console.warn('audio play failed (blocked by browser): click on the site first');
+                } else {
+                    console.warn(`audio play failed for sound "${id || 'unknown'}" (src: ${src}):`, e);
+                }
+                resolve();
+            });
+
+            if (this.stopped) {
+                audio.pause();
+                cleanup();
+                reject(new StopError());
+            }
+        });
+    }
+
+    stopAllSounds() {
+        this.activePlayingSounds.clear();
+        const audios = Array.from(this.activeAudio);
+        this.activeAudio.clear();
+        for (const audio of audios) {
+            try {
+                audio.pause();
+                audio.dispatchEvent(new Event('ended'));
+            } catch (e) {
+                // ignore
+            }
+        }
+        const nodes = Array.from(this.activeSteppingNodes);
+        this.activeSteppingNodes.clear();
+        for (const node of nodes) {
+            try {
+                node.stop();
+                node.disconnect();
+            } catch (e) {
+                // ignore
+            }
+        }
     }
 
     setCanvasEffect(effect: string, value: number) {

@@ -19,12 +19,22 @@ const credits = [
 	{
 		name: 'ddededodediamante',
 		url: 'https://ddededodediamante.vercel.app/',
-		roles: 'Developer',
+		roles: 'Developer, Programmer',
 	},
 	{
 		name: 'Lord Cat',
 		url: 'https://lordcat.dev/',
-		roles: 'Developer',
+		roles: 'Developer, Programmer, Backend',
+	},
+	{
+		name: 'PuzzlingGGG',
+		url: 'https://www.youtube.com/channel/UC9kj6a4md_fw6Yobrh09pJA',
+		roles: 'Developer, Programmer, Default Sound',
+	},
+	{
+		name: 'rlockzo',
+		url: 'https://github.com/rlockzo',
+		roles: 'Developer, Programmer, Default Image',
 	},
 ];
 

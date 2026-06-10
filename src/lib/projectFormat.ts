@@ -338,7 +338,24 @@ function deserializeSpriteData(view: DataView, offset: number, decoder: TextDeco
 }
 
 function normalizeSpriteData(spriteId: string, type: string, data: any): { type: any; data: any } {
-	if (type === 'text') return { type, data };
+	const normalizeSounds = (sounds: any, currentSoundId: any) => {
+		const normalizedSounds = Array.isArray(sounds)
+			? sounds.map((sound: any, index: number) => ({
+				id: String(sound.id || `${spriteId}_sound_${index + 1}`),
+				name: String(sound.name || `Sound ${index + 1}`),
+				src: String(sound.src || ''),
+			}))
+			: [{ id: `${spriteId}_sound_1`, name: 'Sound 1', src: DEFAULT_MEDIA_SRC.replace('default_sprite.svg', 'default_sound.mp3') }];
+		const normalizedCurrentSoundId = normalizedSounds.some((sound: any) => sound.id === currentSoundId)
+			? currentSoundId
+			: normalizedSounds[0].id;
+		return { sounds: normalizedSounds, currentSoundId: normalizedCurrentSoundId };
+	};
+
+	if (type === 'text') {
+		const { sounds, currentSoundId } = normalizeSounds(data.sounds, data.currentSoundId);
+		return { type, data: { ...data, sounds, currentSoundId } };
+	}
 	if (type === 'media') {
 		const images = Array.isArray(data.images)
 			? data.images
@@ -354,7 +371,18 @@ function normalizeSpriteData(spriteId: string, type: string, data: any): { type:
 		const normalizedCurrentImageId = normalizedImages.some((image: any) => image.id === currentImageId)
 			? currentImageId
 			: normalizedImages[0].id;
-		return { type, data: { images: normalizedImages, currentImageId: normalizedCurrentImageId } };
+
+		const { sounds, currentSoundId } = normalizeSounds(data.sounds, data.currentSoundId);
+
+		return {
+			type,
+			data: {
+				images: normalizedImages,
+				currentImageId: normalizedCurrentImageId,
+				sounds,
+				currentSoundId
+			}
+		};
 	}
 	if ('src' in data) {
 		const image = {
@@ -362,12 +390,14 @@ function normalizeSpriteData(spriteId: string, type: string, data: any): { type:
 			name: 'Image 1',
 			src: String(data.src || DEFAULT_MEDIA_SRC),
 		};
-		return { type: 'media', data: { images: [image], currentImageId: image.id } };
+		const { sounds, currentSoundId } = normalizeSounds([], null);
+		return { type: 'media', data: { images: [image], currentImageId: image.id, sounds, currentSoundId } };
 	}
 	const image = {
 		id: `${spriteId}_image_1`,
 		name: 'Image 1',
 		src: DEFAULT_MEDIA_SRC,
 	};
-	return { type: 'media', data: { images: [image], currentImageId: image.id } };
+	const { sounds, currentSoundId } = normalizeSounds([], null);
+	return { type: 'media', data: { images: [image], currentImageId: image.id, sounds, currentSoundId } };
 }
