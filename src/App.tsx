@@ -1,6 +1,6 @@
 import { useReducer, useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
-import { SpriteContext, spriteReducer, initialSpriteState } from './lib/sprites';
+import { SpriteContext, spriteReducer, initialSpriteState, type SpriteAction } from './lib/sprites';
 import HeaderBar from './components/HeaderBar';
 import SpritePanel from './components/SpritePanel';
 import StageView from './components/StageView';
@@ -28,6 +28,7 @@ export default function App() {
 	const [projectSettings, setProjectSettings] = useState<ProjectSettings>(DEFAULT_PROJECT_SETTINGS);
 	const [showCredits, setShowCredits] = useState(false);
 	const [showSettings, setShowSettings] = useState(false);
+	const [isDirty, setIsDirty] = useState(false);
 	const [closingModals, setClosingModals] = useState<Record<ModalKey, boolean>>({
 		js: false,
 		credits: false,
@@ -67,6 +68,32 @@ export default function App() {
 		setProjectSettings((current) => ({ ...current, ...changes }));
 	}, []);
 
+	const dispatchTracked = useCallback((action: SpriteAction) => {
+		if (action.type !== 'SELECT_SPRITE') {
+			setIsDirty(true);
+		}
+		dispatch(action);
+	}, []);
+
+	const handleProjectNameChange = useCallback((name: string) => {
+		setProjectName(name);
+		setIsDirty(true);
+	}, []);
+
+	const handleProjectSettingsChange = useCallback((settings: ProjectSettings) => {
+		setProjectSettings(settings);
+		setIsDirty(true);
+	}, []);
+
+	useEffect(() => {
+		if (!isDirty) return;
+		const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+			event.preventDefault();
+		};
+		window.addEventListener('beforeunload', handleBeforeUnload);
+		return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+	}, [isDirty]);
+
 	const handleSeeJS = () => {
 		setGeneratedJS(runtime.compile().trim());
 		openModal('js', setShowJS);
@@ -83,6 +110,7 @@ export default function App() {
 		link.click();
 		document.body.removeChild(link);
 		URL.revokeObjectURL(url);
+		setIsDirty(false);
 	};
 
 	const handleLoad = () => {
@@ -101,6 +129,7 @@ export default function App() {
 					setProjectName(project.projectName);
 					setProjectSettings(project.settings);
 					dispatch({ type: 'LOAD_PROJECT', state: project.state });
+					setIsDirty(false);
 				} catch (err) {
 					console.error('Failed to load project:', err);
 					alert('Failed to load project file. Invalid format.');
@@ -122,7 +151,7 @@ export default function App() {
 	}, [generatedJS]);
 
 	return (
-		<SpriteContext.Provider value={{ state, dispatch }}>
+		<SpriteContext.Provider value={{ state, dispatch: dispatchTracked }}>
 			<ProjectSettingsContext.Provider value={{
 				settings: projectSettings,
 				setSettings: setProjectSettings,
@@ -131,7 +160,7 @@ export default function App() {
 				<div className="editor-shell">
 					<HeaderBar
 						projectName={projectName}
-						onProjectNameChange={setProjectName}
+						onProjectNameChange={handleProjectNameChange}
 						onSeeJS={handleSeeJS}
 						onSave={handleSave}
 						onLoad={handleLoad}
@@ -158,7 +187,7 @@ export default function App() {
 				{showSettings && (
 					<SettingsModal
 						settings={projectSettings}
-						onChange={setProjectSettings}
+						onChange={handleProjectSettingsChange}
 						isClosing={closingModals.settings}
 						onClose={() => closeModal('settings', setShowSettings)}
 					/>
