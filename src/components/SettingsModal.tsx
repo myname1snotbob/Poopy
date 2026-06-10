@@ -24,7 +24,7 @@ export default function SettingsModal({ settings, onChange, isClosing = false, o
 		<div className={`modal-overlay ${isClosing ? 'is-closing' : ''}`} onClick={onClose}>
 			<div className="modal-content settings-modal" onClick={(e) => e.stopPropagation()}>
 				<div className="modal-header">
-					<h2>Project Settings</h2>
+					<h2>Video Settings</h2>
 					<button className="close-modal-btn" onClick={onClose}><X size={18} /></button>
 				</div>
 				<div className="modal-body settings-modal-body">
