@@ -1,7 +1,7 @@
 import {useState} from 'react';
 
 import '../styles/editor.css';
-import { useSprites } from '../lib/sprites';
+import { useSprites, generateMediaSoundId } from '../lib/sprites';
 import { AudioLines, PlayIcon, Plus, PauseIcon } from 'lucide-react';
 
 export default function SoundTab() {
