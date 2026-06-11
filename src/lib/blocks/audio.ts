@@ -230,11 +230,11 @@ javascriptGenerator.forBlock["audio_setPitch"] = function (block: Blockly.Block)
   return `window.RUNTIME.setSoundPitch("${soundId}", (${pitch}) / 100);\n`;
 };
 
-Blockly.Blocks["audio_setMasterVolume"] = {
+Blockly.Blocks["audio_setProjectVolume"] = {
   init: function () {
     this.appendValueInput("VOLUME")
       .setCheck("Number")
-      .appendField("set master volume to");
+      .appendField("set project volume to");
     this.appendDummyInput().appendField("%");
     this.setInputsInline(true);
     this.setPreviousStatement(true, null);
@@ -244,16 +244,16 @@ Blockly.Blocks["audio_setMasterVolume"] = {
   },
 };
 
-javascriptGenerator.forBlock["audio_setMasterVolume"] = function (block: Blockly.Block) {
+javascriptGenerator.forBlock["audio_setProjectVolume"] = function (block: Blockly.Block) {
   const volume = javascriptGenerator.valueToCode(block, "VOLUME", Order.ATOMIC) || "100";
   return `window.RUNTIME.setMasterVolume((${volume}) / 100);\n`;
 };
 
-Blockly.Blocks["audio_changeMasterVolume"] = {
+Blockly.Blocks["audio_changeProjectVolume"] = {
   init: function () {
     this.appendValueInput("VOLUME")
       .setCheck("Number")
-      .appendField("change master volume by");
+      .appendField("change project volume by");
     this.setInputsInline(true);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
@@ -262,21 +262,21 @@ Blockly.Blocks["audio_changeMasterVolume"] = {
   },
 };
 
-javascriptGenerator.forBlock["audio_changeMasterVolume"] = function (block: Blockly.Block) {
+javascriptGenerator.forBlock["audio_changeProjectVolume"] = function (block: Blockly.Block) {
   const delta = javascriptGenerator.valueToCode(block, "VOLUME", Order.ATOMIC) || "10";
   return `window.RUNTIME.changeMasterVolume((${delta}) / 100);\n`;
 };
 
-Blockly.Blocks["audio_getMasterVolume"] = {
+Blockly.Blocks["audio_getProjectVolume"] = {
   init: function () {
-    this.appendDummyInput().appendField("master volume %");
+    this.appendDummyInput().appendField("project volume %");
     this.setOutput(true, "Number");
     this.setStyle("audio_blocks");
     this.setTooltip("Returns the overall volume (0-100%)");
   },
 };
 
-javascriptGenerator.forBlock["audio_getMasterVolume"] = function () {
+javascriptGenerator.forBlock["audio_getProjectVolume"] = function () {
   return [`(window.RUNTIME.getMasterVolume() * 100)`, Order.ATOMIC];
 };
 
