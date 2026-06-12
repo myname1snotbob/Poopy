@@ -52,6 +52,8 @@ export interface Sprite {
   width: number;
   height: number;
   rotation: number;
+  rotationOriginX: number;
+  rotationOriginY: number;
   opacity: number;
   visible: boolean;
   locked: boolean;
@@ -106,6 +108,8 @@ export function createTextSprite(name: string): Sprite {
     width: 533,
     height: 107,
     rotation: 0,
+    rotationOriginX: 0.5,
+    rotationOriginY: 0.5,
     opacity: 1,
     visible: true,
     locked: false,
@@ -138,6 +142,8 @@ export function createMediaSprite(name: string): Sprite {
     width: 195.49078 * 3,
     height: 59.46922 * 3,
     rotation: 0,
+    rotationOriginX: 0.5,
+    rotationOriginY: 0.5,
     opacity: 1,
     visible: true,
     locked: false,
@@ -223,6 +229,8 @@ export function spriteReducer(
         x: original.x + 20,
         y: original.y + 20,
         zIndex: state.sprites.length,
+        rotationOriginX: original.rotationOriginX,
+        rotationOriginY: original.rotationOriginY,
         tweenModes: { ...original.tweenModes },
         data: { ...original.data },
       };
@@ -239,6 +247,8 @@ export function spriteReducer(
           ...sprite,
           tweenMode: sprite.tweenMode ?? DEFAULT_TWEEN_MODE,
           tweenModes: sprite.tweenModes ?? {},
+          rotationOriginX: sprite.rotationOriginX ?? 0.5,
+          rotationOriginY: sprite.rotationOriginY ?? 0.5,
         })),
         loadKey: state.loadKey + 1,
       };
@@ -267,4 +277,11 @@ export function isTextData(data: SpriteData): data is TextSpriteData {
 
 export function isMediaData(data: SpriteData): data is MediaSpriteData {
   return "images" in data && "currentImageId" in data;
+}
+
+export function getSpriteRotationOrigin(sprite: Pick<Sprite, 'width' | 'height' | 'rotationOriginX' | 'rotationOriginY'>) {
+  return {
+    x: sprite.width * sprite.rotationOriginX,
+    y: sprite.height * sprite.rotationOriginY,
+  };
 }

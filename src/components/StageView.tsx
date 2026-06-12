@@ -357,8 +357,17 @@ function SpriteRenderer({
     const width = node.width();
     const height = node.height();
     const topLeft = snapToGrid
-      ? snapTopLeftToGrid(node.x(), node.y(), width, height, gridSize)
-      : { x: node.x(), y: node.y() };
+      ? snapTopLeftToGrid(
+        node.x() - width / 2,
+        node.y() - height / 2,
+        width,
+        height,
+        gridSize,
+      )
+    : {
+        x: node.x() - width / 2,
+        y: node.y() - height / 2,
+      };
     if (snapToGrid) {
       node.x(topLeft.x);
       node.y(topLeft.y);
@@ -407,13 +416,16 @@ function SpriteRenderer({
 
     const topLeft = snapToGrid
       ? snapTopLeftToGrid(
-          node.x(),
-          node.y(),
+          node.x() - updatedWidth / 2,
+          node.y() - updatedHeight / 2,
           updatedWidth,
           updatedHeight,
           gridSize,
         )
-      : { x: node.x(), y: node.y() };
+      : {
+          x: node.x() - updatedWidth / 2,
+          y: node.y() - updatedHeight / 2,
+        };
     changes.x = fromCanvasX(topLeft.x + updatedWidth / 2);
     changes.y = fromCanvasY(topLeft.y + updatedHeight / 2);
     if (snapToGrid) {
@@ -445,8 +457,10 @@ function SpriteRenderer({
   const canvasTopLeftX = canvasCenterX - sprite.width / 2;
   const canvasTopLeftY = canvasCenterY - sprite.height / 2;
   const commonProps = {
-    x: canvasTopLeftX,
-    y: canvasTopLeftY,
+    x: canvasCenterX,
+    y: canvasCenterY,
+    offsetX: sprite.width / 2,
+    offsetY: sprite.height / 2,
     width: sprite.width,
     height: sprite.height,
     rotation: sprite.rotation,
@@ -1061,8 +1075,10 @@ export default function StageView() {
         const opacity = Number(spriteData.opacity ?? sprite.opacity);
         const visible = Boolean(spriteData.visible ?? sprite.visible);
         node.setAttrs({
-          x: stageCoords.toCanvasX(x) - width / 2,
-          y: stageCoords.toCanvasY(y) - height / 2,
+          x: stageCoords.toCanvasX(x),
+          y: stageCoords.toCanvasY(y),
+		  offsetX: width / 2,
+		  offsetY: height / 2,
           width,
           height,
           rotation,
