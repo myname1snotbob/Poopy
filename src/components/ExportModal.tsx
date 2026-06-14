@@ -59,6 +59,10 @@ export default function ExportModal({
         <div className="modal-body settings-modal-body">
           {!isEncoding && (
             <>
+              <div className="export-warning">
+                Note: You may hear slight audio distortion during the recording
+                process. This will not be present in the final exported video.
+              </div>
               <section className="settings-section">
                 <div className="settings-section-title">
                   <Gauge size={16} />

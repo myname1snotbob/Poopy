@@ -1557,6 +1557,16 @@ body {
   gap: var(--space-lg);
 }
 
+.export-warning {
+  border: 1px solid var(--danger);
+  color: var(--danger);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  font-size: 11px;
+  line-height: 1.4;
+  font-weight: 500;
+}
+
 .settings-section {
   display: flex;
   flex-direction: column;
