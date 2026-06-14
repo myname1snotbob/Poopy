@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
 import * as Blockly from "blockly";
 import { javascriptGenerator } from "blockly/javascript";
 
@@ -38,6 +38,7 @@ import {
 import { ensureDefaultInputBlocks } from "../lib/blocks/defaultInputBlocks";
 import { subscribeExtensionChanges } from "../lib/extensions/manager";
 import { useSprites } from "../lib/sprites";
+import {Plus} from "lucide-react";
 
 function syncShadowColours(
   workspace: Blockly.WorkspaceSvg | Blockly.Workspace,
@@ -67,7 +68,7 @@ function applyMotionGoToFlyoutDefaults(
   });
 }
 
-export default function BlocklyEditor() {
+export default function BlocklyEditor({showMenu}:{showMenu:Dispatch<SetStateAction<boolean>>}) {
   const blocklyDivRef = useRef<HTMLDivElement | null>(null);
   const workspaceRef = useRef<Blockly.WorkspaceSvg | null>(null);
   const { state, dispatch } = useSprites();
@@ -313,7 +314,7 @@ export default function BlocklyEditor() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            zIndex: 50,
+            zIndex: 100,
             color: "var(--text-secondary)",
             fontSize: "13px",
             fontWeight: 500,
@@ -326,6 +327,30 @@ export default function BlocklyEditor() {
         >
           Select a source to view and edit its blocks
         </div>
+      )}
+
+      {selectedSpriteId && (
+        <div
+          style={{
+            bottom: "0%",
+            left: "0%",
+            position: "absolute",
+            width: "124px",
+            //height: "75px",
+            padding: "10px",
+            zIndex: 100,
+            background: "var(--accent)",
+            cursor:"pointer",
+            alignContent: "center",
+            alignItems: "center",
+            justifyContent: "center",
+            display: "flex",
+            flexDirection:"column",
+          }}
+          onClick={() => showMenu(true)}>
+            <Plus style={{width: "35px", height: "35px"}}/>
+            <div>Add an extension</div>
+          </div>
       )}
     </div>
   );

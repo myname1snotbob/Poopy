@@ -31,6 +31,7 @@ import "./styles/editor.css";
 import hljs from "highlight.js/lib/core";
 import javascript from "highlight.js/lib/languages/javascript";
 import TabSection from "./components/TabSection";
+import ExtensionMenu from "./components/ExtensionMenu";
 hljs.registerLanguage("javascript", javascript);
 
 const MODAL_EXIT_MS = 120;
@@ -54,6 +55,7 @@ export default function App() {
       settings: false,
     },
   );
+  const [showExtMenu, setShowExtMenu] = useState(false);
   const modalCloseTimers = useRef<Partial<Record<ModalKey, number>>>({});
 
   useEffect(() => {
@@ -207,7 +209,7 @@ export default function App() {
             onOpenCredits={() => openModal("credits", setShowCredits)}
             onOpenSettings={() => openModal("settings", setShowSettings)}
           />
-          <TabSection />
+          <TabSection showMenu={setShowExtMenu} />
           <div className="right-column">
             <StageView />
             <div
@@ -272,6 +274,15 @@ export default function App() {
               </div>
             </div>
           </div>
+        )}
+
+        {showExtMenu && (
+          /*
+          <div style={{position: "absolute", top: 0, left: 0,color: "red", background:"green", width: "100%", height:"100%",zIndex: 10000}}>
+            SHOW EXT MENU HERE
+          </div>
+          */
+          <ExtensionMenu showMenu={setShowExtMenu}/>
         )}
       </ProjectSettingsContext.Provider>
     </SpriteContext.Provider>

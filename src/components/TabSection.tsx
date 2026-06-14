@@ -7,8 +7,9 @@ import SoundTab from "./SoundTab";
 import ImageTab from "./ImageTab";
 import VideoTab from "./VideoTab";
 import TweenTab from "./TweenTab";
+import { Dispatch, SetStateAction } from "react";
 
-export default function TabSection() {
+export default function TabSection({showMenu}:{showMenu:Dispatch<SetStateAction<boolean>>}) {
   const { state } = useSprites();
   const sprite = state.sprites.find((s) => s.id === state.selectedSpriteId);
 
@@ -44,7 +45,7 @@ export default function TabSection() {
         </Tab>
       </TabList>
       <TabPanel>
-        <BlocklyEditor />
+        <BlocklyEditor showMenu={showMenu} />
       </TabPanel>
       {sprite?.type === "media" && (
         <TabPanel>
