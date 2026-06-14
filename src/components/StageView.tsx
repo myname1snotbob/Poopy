@@ -969,46 +969,28 @@ export default function StageView() {
     const layer = layerRef.current;
     if (!layer) return;
 
-    const drawTimes: number[] = [];
-    const windowMs = 500;
-    const onDraw = () => {
-      drawTimes.push(performance.now());
-    };
+    const targetFps = settings.fps;
 
-    let rafId = 0;
-    const tick = () => {
-      const now = performance.now();
-      while (drawTimes.length > 0 && now - drawTimes[0] > windowMs) {
-        drawTimes.shift();
-      }
-
-      let fps = 0;
-      if (drawTimes.length >= 2) {
-        fps = Math.round(
-          ((drawTimes.length - 1) / (now - drawTimes[0])) * 1000,
-        );
-      }
+    const anim = new KonvaCore.Animation((frame) => {
+      if (!frame || frame.timeDiff === 0) return;
+      const fps = Math.min(Math.round(1000 / frame.timeDiff), targetFps);
 
       const fpsNode = fpsRef.current;
       if (fpsNode) {
         fpsNode.textContent = `${fps} FPS`;
-        fpsNode.style.color = getFpsColor(fps, settings.fps);
+        fpsNode.style.color = getFpsColor(fps, targetFps);
       }
-
       const fsFpsNode = fullScreenFpsRef.current;
       if (fsFpsNode) {
         fsFpsNode.textContent = `${fps} FPS`;
-        fsFpsNode.style.color = getFpsColor(fps, settings.fps);
+        fsFpsNode.style.color = getFpsColor(fps, targetFps);
       }
-      rafId = requestAnimationFrame(tick);
-    };
+    }, layer);
 
-    layer.on("draw", onDraw);
-    rafId = requestAnimationFrame(tick);
+    anim.start();
 
     return () => {
-      layer.off("draw", onDraw);
-      cancelAnimationFrame(rafId);
+      anim.stop();
     };
   }, [stageSize.width, stageSize.height, settings.fps]);
 
