@@ -6,6 +6,7 @@ import {
   isMediaData,
   isVideoData,
   type MediaSpriteData,
+  type VideoSpriteData,
   generateMediaVideoId,
   type MediaVideo,
 } from "../lib/sprites";
@@ -77,17 +78,6 @@ export default function VideoTab() {
   const [videoIDX, setVideoIDX] = useState(0);
   const { show } = useContextMenu({ id: MENU_ID });
 
-  const isVideo = sprite && isVideoData(sprite.data);
-  const activeItem = isVideo ? sprite.data.videos[videoIDX] : null;
-
-  const plyrSource = useMemo(() => {
-    if (!activeItem?.src) return null;
-    return {
-      type: "video" as const,
-      sources: [{ src: activeItem.src }],
-    };
-  }, [activeItem?.src]);
-
   if (!sprite || !isVideoData(sprite.data)) {
     return (
       <div
@@ -109,6 +99,16 @@ export default function VideoTab() {
     );
   }
 
+  const activeItem = sprite.data.videos[videoIDX];
+
+  const plyrSource = useMemo(() => {
+    if (!activeItem?.src) return null;
+    return {
+      type: "video" as const,
+      sources: [{ src: activeItem.src }],
+    };
+  }, [activeItem?.src]);
+
   const updateVideo = (id: string, changes: Partial<MediaVideo>) => {
     if (!sprite || !isVideoData(sprite.data)) return;
     dispatch({
@@ -117,7 +117,7 @@ export default function VideoTab() {
       changes: {
         data: {
           ...sprite.data,
-          videos: sprite.data.videos.map((v) =>
+          videos: sprite.data.videos.map((v: MediaVideo) =>
             v.id === id ? { ...v, ...changes } : v,
           ),
         },
@@ -137,7 +137,8 @@ export default function VideoTab() {
   };
 
   const readVideoFile = (file: File, replaceId?: string) => {
-    if (!isVideoData(sprite.data)) return;
+    if (!sprite || !isVideoData(sprite.data)) return;
+    const currentData = sprite.data;
     const reader = new FileReader();
     reader.onload = () => {
       const src = String(reader.result ?? "");
@@ -147,20 +148,20 @@ export default function VideoTab() {
       if (!replaceId) {
         const newVideo = {
           id: videoId,
-          name: file.name.replace(/\.[^.]+$/, "") || "Video " + (sprite.data.videos.length + 1),
+          name: file.name.replace(/\.[^.]+$/, "") || "Video " + (currentData.videos.length + 1),
           src,
         };
-        newVideos = [...sprite.data.videos, newVideo];
+        newVideos = [...currentData.videos, newVideo];
       } else {
-        newVideos = sprite.data.videos.map(v => v.id === videoId ? { ...v, src, name: file.name.replace(/\.[^.]+$/, "") } : v);
+        newVideos = currentData.videos.map((v: MediaVideo) => v.id === videoId ? { ...v, src, name: file.name.replace(/\.[^.]+$/, "") } : v);
       }
 
       const videoElement = document.createElement("video");
       videoElement.src = src;
       videoElement.onloadedmetadata = () => {
-        if (!isVideoData(sprite.data)) return;
+        if (!sprite || !isVideoData(sprite.data)) return;
         const nextData = {
-          ...sprite.data,
+          ...currentData,
           currentVideoId: videoId,
           videos: newVideos,
         };
@@ -170,9 +171,9 @@ export default function VideoTab() {
         });
       };
       videoElement.onerror = () => {
-        if (!isVideoData(sprite.data)) return;
+        if (!sprite || !isVideoData(sprite.data)) return;
         updateMediaData({
-          ...sprite.data,
+          ...currentData,
           currentVideoId: videoId,
           videos: newVideos,
         });
@@ -228,10 +229,11 @@ export default function VideoTab() {
             if (newName) updateVideo(e.props.video.id, { name: newName });
           }}>Rename</Item>
           <Item onClick={(e) => replaceVideo(e.props.video.id)}>Replace</Item>
-          {sprite.data.videos.length > 1 && (
+          {isVideoData(sprite.data) && sprite.data.videos.length > 1 && (
             <Item
               onClick={(e) => {
-                const nextVideos = sprite.data.videos.filter(v => v.id !== e.props.video.id);
+                if (!sprite || !isVideoData(sprite.data)) return;
+                const nextVideos = sprite.data.videos.filter((v: MediaVideo) => v.id !== e.props.video.id);
                 dispatch({
                   type: "UPDATE_SPRITE",
                   id: sprite.id,

@@ -1265,12 +1265,12 @@ export default function StageView() {
           }
           if (property === "videoDuration") {
             const node = spriteNodeRefs.current.get(sprite.id) as Konva.Group;
-            const video = node?.findOne("Image")?.image() as HTMLVideoElement;
+            const video = (node?.findOne("Image") as Konva.Image)?.image() as HTMLVideoElement;
             return video?.duration || 0;
           }
           if (property === "videoCurrentTime") {
             const node = spriteNodeRefs.current.get(sprite.id) as Konva.Group;
-            const video = node?.findOne("Image")?.image() as HTMLVideoElement;
+            const video = (node?.findOne("Image") as Konva.Image)?.image() as HTMLVideoElement;
             return video?.currentTime || target.videoCurrentTime || 0;
           }
           if (property === "sounds") {
@@ -1443,7 +1443,7 @@ export default function StageView() {
               const shouldPlayRef = videoShouldPlayRefs.current.get(sprite.id);
               if (shouldPlayRef) shouldPlayRef.current = playing;
               const node = spriteNodeRefs.current.get(sprite.id) as Konva.Group;
-              const video = node?.findOne("Image")?.image() as HTMLVideoElement;
+              const video = (node?.findOne("Image") as Konva.Image)?.image() as HTMLVideoElement;
               if (video) {
                 if (playing) {
                   video.muted = current.data.videoVolume === 0;
@@ -1461,7 +1461,7 @@ export default function StageView() {
               const rate = Number(value);
               target.videoPlaybackRate = rate;
               const node = spriteNodeRefs.current.get(sprite.id) as Konva.Group;
-              const video = node?.findOne("Image")?.image() as HTMLVideoElement;
+              const video = (node?.findOne("Image") as Konva.Image)?.image() as HTMLVideoElement;
               if (video) video.playbackRate = rate;
               queuePlaybackStateUpdate(sprite.id, {
                 data: { ...current.data, videoPlaybackRate: rate },
@@ -1474,7 +1474,7 @@ export default function StageView() {
               const volume = Math.max(0, Math.min(1, Number(value)));
               target.videoVolume = volume;
               const node = spriteNodeRefs.current.get(sprite.id) as Konva.Group;
-              const video = node?.findOne("Image")?.image() as HTMLVideoElement;
+              const video = (node?.findOne("Image") as Konva.Image)?.image() as HTMLVideoElement;
               if (video) {
                 video.volume = volume;
                 video.muted = volume === 0;
@@ -1490,7 +1490,7 @@ export default function StageView() {
               const loop = Boolean(value);
               target.videoLoop = loop;
               const node = spriteNodeRefs.current.get(sprite.id) as Konva.Group;
-              const video = node?.findOne("Image")?.image() as HTMLVideoElement;
+              const video = (node?.findOne("Image") as Konva.Image)?.image() as HTMLVideoElement;
               if (video) video.loop = loop;
               queuePlaybackStateUpdate(sprite.id, {
                 data: { ...current.data, videoLoop: loop },
@@ -1503,7 +1503,7 @@ export default function StageView() {
               const time = Number(value);
               target.videoCurrentTime = time;
               const node = spriteNodeRefs.current.get(sprite.id) as Konva.Group;
-              const video = node?.findOne("Image")?.image() as HTMLVideoElement;
+              const video = (node?.findOne("Image") as Konva.Image)?.image() as HTMLVideoElement;
               if (video) video.currentTime = time;
               queuePlaybackStateUpdate(sprite.id, {
                 data: { ...current.data, videoCurrentTime: time },

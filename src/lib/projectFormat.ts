@@ -288,6 +288,8 @@ function deserializeState(data: Uint8Array, fileVersion: number): SpriteState {
       width,
       height,
       rotation,
+      rotationOriginX: 0.5,
+      rotationOriginY: 0.5,
       opacity,
       visible,
       locked,

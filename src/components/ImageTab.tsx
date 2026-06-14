@@ -73,7 +73,8 @@ export default function ImageTab() {
   };
 
   const readImageFile = (file: File, replaceId?: string) => {
-    if (!isMediaData(sprite.data)) return;
+    if (!sprite || !isMediaData(sprite.data)) return;
+    const currentData = sprite.data;
     const reader = new FileReader();
     reader.onload = () => {
       const src = String(reader.result ?? "");
@@ -83,19 +84,19 @@ export default function ImageTab() {
       if (!replaceId) {
         const newImage = {
           id: imageId,
-          name: file.name.replace(/\.[^.]+$/, "") || "Image " + (sprite.data.images.length + 1),
+          name: file.name.replace(/\.[^.]+$/, "") || "Image " + (currentData.images.length + 1),
           src,
         };
-        newImages = [...sprite.data.images, newImage];
+        newImages = [...currentData.images, newImage];
       } else {
-        newImages = sprite.data.images.map(img => img.id === imageId ? { ...img, src, name: file.name.replace(/\.[^.]+$/, "") } : img);
+        newImages = currentData.images.map((img: MediaImage) => img.id === imageId ? { ...img, src, name: file.name.replace(/\.[^.]+$/, "") } : img);
       }
 
       const imageElement = new window.Image();
       imageElement.onload = () => {
-        if (!isMediaData(sprite.data)) return;
+        if (!sprite || !isMediaData(sprite.data)) return;
         const nextData: MediaSpriteData = {
-          ...sprite.data,
+          ...currentData,
           currentImageId: imageId,
           images: newImages,
         };
@@ -105,9 +106,9 @@ export default function ImageTab() {
         });
       };
       imageElement.onerror = () => {
-        if (!isMediaData(sprite.data)) return;
+        if (!sprite || !isMediaData(sprite.data)) return;
         updateMediaData({
-          ...sprite.data,
+          ...currentData,
           currentImageId: imageId,
           images: newImages,
         });
@@ -164,10 +165,11 @@ export default function ImageTab() {
             if (newName) updateImage(e.props.image.id, { name: newName });
           }}>Rename</Item>
           <Item onClick={(e) => replaceImage(e.props.image.id)}>Replace</Item>
-          {sprite.data.images.length > 1 && (
+          {isMediaData(sprite.data) && sprite.data.images.length > 1 && (
             <Item
               onClick={(e) => {
-                const nextImages = sprite.data.images.filter(img => img.id !== e.props.image.id);
+                if (!sprite || !isMediaData(sprite.data)) return;
+                const nextImages = sprite.data.images.filter((img: MediaImage) => img.id !== e.props.image.id);
                 dispatch({
                   type: "UPDATE_SPRITE",
                   id: sprite.id,
