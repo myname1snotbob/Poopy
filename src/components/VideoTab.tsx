@@ -275,7 +275,7 @@ export default function VideoTab() {
               />
             </div>
             <div style={{ marginTop: "1rem", width: "100%", maxWidth: "600px" }}>
-              {plyrSource && <Plyr source={plyrSource} options={{ autoplay: false }} />}
+              {plyrSource && <Plyr source={plyrSource} options={{ autoplay: false, pip: false }} />}
             </div>
           </div>
         )}
