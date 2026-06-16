@@ -11,33 +11,67 @@ permissions:
   id-token: write
 
 concurrency:
-  group: "pages"
+  group: pages
   cancel-in-progress: false
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
         with:
           version: 8
-      - uses: actions/setup-node@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "pnpm"
-      - run: pnpm install
-      - run: pnpm run build
-      - uses: actions/upload-pages-artifact@v3
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build
+        run: pnpm run build
+
+      - name: Create Pages structure
+        run: |
+          mkdir -p site/editor
+          cp -r dist/* site/editor/
+
+          cat > site/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <meta http-equiv="refresh" content="0; url=/editor/">
+            <title>Redirecting...</title>
+          </head>
+          <body>
+            <a href="/editor/">Go to Editor</a>
+          </body>
+          </html>
+          EOF
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          path: "dist/"
+          path: site/
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
+
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+
     steps:
-      - uses: actions/deploy-pages@v4
+      - name: Deploy to GitHub Pages
         id: deployment
+        uses: actions/deploy-pages@v4
