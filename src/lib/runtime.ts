@@ -596,11 +596,7 @@ class Runtime {
       clearTimeout(id);
     }
     this.activeTimeouts.clear();
-    this.stopAllSounds();
-    this.activePlayingSounds.clear();
-    this.audioContext?.suspend().catch(() => {});
-    this.resetAudioState();
-    this.nextMonitoringTime = 0;
+    this.teardownAudio();
     this.cancelFrameTick();
     for (const waiter of this.frameWaiters) {
       waiter.reject(new StopError());
@@ -642,6 +638,21 @@ class Runtime {
         // ignore
       }
     }
+  }
+
+  private teardownAudio() {
+    this.stopAllSounds();
+    this.activePlayingSounds.clear();
+    if (this.masterGain) {
+      try { this.masterGain.disconnect(); } catch { /* ignore */ }
+      this.masterGain = null;
+    }
+    if (this.audioContext) {
+      try { this.audioContext.close(); } catch { /* ignore */ }
+      this.audioContext = null;
+    }
+    this.resetAudioState();
+    this.nextMonitoringTime = 0;
   }
 
   async playSound(
@@ -695,9 +706,10 @@ class Runtime {
     volume: number,
     rate: number,
   ): Promise<void> {
+    const epoch = this.epoch;
     const buffer = await this.decodeAudio(src);
     if (!buffer) return;
-    if (this.stopped) return;
+    if (this.stopped || this.epoch !== epoch) return;
 
     let ctx: AudioContext;
     let master: GainNode;
@@ -1123,9 +1135,6 @@ class Runtime {
     this.runEpoch = this.epoch;
     this.stopped = false;
     this.paused = false;
-    if (!this.isStepping) {
-      this.audioContext?.resume().catch(() => {});
-    }
     this.lastFrameTime = performance.now();
     const myEpoch = this.runEpoch;
     const compiled = this.compile();
