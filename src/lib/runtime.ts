@@ -1260,11 +1260,12 @@ class Runtime {
         if (this.stopped || myEpoch !== this.epoch) return;
       }
 
-      for (const [spriteId, context] of this.sprites.entries()) {
-        if (this.stopped || myEpoch !== this.epoch) return;
-        await this.emit("start", spriteId, context);
-        if (this.stopped || myEpoch !== this.epoch) return;
-      }
+      await Promise.all(
+        Array.from(this.sprites.entries()).map(([spriteId, context]) =>
+          this.emit("start", spriteId, context),
+        ),
+      );
+      if (this.stopped || myEpoch !== this.epoch) return;
     } catch (e) {
       if (e instanceof StopError) return;
       throw e;
