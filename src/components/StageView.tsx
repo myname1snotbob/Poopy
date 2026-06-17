@@ -7,6 +7,7 @@ import {
   Maximize,
   X,
   Download,
+  Loader2,
 } from "lucide-react";
 import {
   Stage,
@@ -639,6 +640,7 @@ export default function StageView() {
   const [isPlaying, setIsPlaying] = useState(false);
   const isPlayingRef = useRef(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const playGenerationRef = useRef(0);
   const spritesRef = useRef(state.sprites);
   const pendingPlaybackChangesRef = useRef(
@@ -1127,6 +1129,7 @@ export default function StageView() {
     for (const ref of videoShouldPlayRefs.current.values()) ref.current = false;
     setIsPlayingWithRef(true);
     setIsPaused(false);
+    setIsLoading(true);
 
     state.sprites.forEach((sprite) => {
       const spriteData: Record<string, unknown> = {
@@ -1579,6 +1582,15 @@ export default function StageView() {
       });
     });
 
+    try {
+      await runtime.preloadSounds();
+    } finally {
+      if (generation === playGenerationRef.current) {
+        setIsLoading(false);
+      }
+    }
+    if (generation !== playGenerationRef.current) return;
+
     await runtime.start();
     if (generation === playGenerationRef.current) {
       flushPlaybackStateUpdates();
@@ -1604,6 +1616,7 @@ export default function StageView() {
     playGenerationRef.current++;
     setIsPlayingWithRef(false);
     setIsPaused(false);
+    setIsLoading(false);
 
     pauseAllVideoElements({ resetTime: true });
     runtime.stop();
@@ -1702,17 +1715,21 @@ export default function StageView() {
         >
           <button
             className={`transport-btn ${isPlaying && !isPaused ? "active" : ""}`}
-            title={isPaused ? "Resume" : "Play"}
+            title={isLoading ? "Loading" : isPaused ? "Resume" : "Play"}
             onClick={() => handlePlay()}
-            disabled={isRecording}
+            disabled={isRecording || isLoading}
           >
-            <Play size={18} />
+            {isLoading ? (
+              <Loader2 size={18} className="spin" />
+            ) : (
+              <Play size={18} />
+            )}
           </button>
           <button
             className={`transport-btn ${isPaused ? "active" : ""}`}
             title="Pause"
             onClick={handlePause}
-            disabled={!isPlaying || isRecording}
+            disabled={!isPlaying || isRecording || isLoading}
           >
             <Pause size={18} />
           </button>
@@ -1788,17 +1805,21 @@ export default function StageView() {
               >
                 <button
                   className={`transport-btn ${isPlaying && !isPaused ? "active" : ""}`}
-                  title={isPaused ? "Resume" : "Play"}
+                  title={isLoading ? "Loading" : isPaused ? "Resume" : "Play"}
                   onClick={() => handlePlay()}
-                  disabled={isRecording}
+                  disabled={isRecording || isLoading}
                 >
-                  <Play size={18} />
+                  {isLoading ? (
+                    <Loader2 size={18} className="spin" />
+                  ) : (
+                    <Play size={18} />
+                  )}
                 </button>
                 <button
                   className={`transport-btn ${isPaused ? "active" : ""}`}
                   title="Pause"
                   onClick={handlePause}
-                  disabled={!isPlaying || isRecording}
+                  disabled={!isPlaying || isRecording || isLoading}
                 >
                   <Pause size={18} />
                 </button>

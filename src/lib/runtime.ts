@@ -1224,6 +1224,17 @@ class Runtime {
     return this.compiler?.() ?? "";
   }
 
+  async preloadSounds(): Promise<void> {
+    const sources = new Set<string>();
+    for (const context of this.sprites.values()) {
+      for (const sound of context.sprite.sounds ?? []) {
+        if (sound.src) sources.add(sound.src);
+      }
+    }
+    if (sources.size === 0) return;
+    await Promise.all(Array.from(sources, (src) => this.decodeAudio(src)));
+  }
+
   async start() {
     this.stop();
     this.runEpoch = this.epoch;
@@ -1237,6 +1248,7 @@ class Runtime {
     } catch { /* ignore */ }
 
     const myEpoch = this.runEpoch;
+
     const compiled = this.compile();
     this.clearHandlers();
 
