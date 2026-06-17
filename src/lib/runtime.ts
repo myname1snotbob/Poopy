@@ -180,6 +180,7 @@ class Runtime {
   }
 
   unlockAudio() {
+    if (this.paused) return;
     void this.ensureAudioRunning();
   }
 

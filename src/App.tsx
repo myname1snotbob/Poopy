@@ -137,6 +137,8 @@ export default function App() {
   useEffect(() => {
     const unlock = () => {
       runtime.unlockAudio();
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("keydown", unlock);
     };
     window.addEventListener("pointerdown", unlock);
     window.addEventListener("keydown", unlock);
