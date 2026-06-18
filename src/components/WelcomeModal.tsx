@@ -114,8 +114,6 @@ export default function WelcomeModal({
               value={projectName}
               onChange={(e) => setProjectName(e.target.value)}
               placeholder="Untitled Project"
-              autoFocus
-              onFocus={(e) => e.target.select()}
             />
           </div>
 
