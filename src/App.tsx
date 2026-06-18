@@ -18,6 +18,7 @@ import SpritePanel from "./components/SpritePanel";
 import StageView from "./components/StageView";
 import PropertiesPanel from "./components/PropertiesPanel";
 import BrowserCompatibilityModal from "./components/BrowserCompatibilityModal";
+import WelcomeModal from "./components/WelcomeModal";
 import CreditsModal from "./components/CreditsModal";
 import SettingsModal from "./components/SettingsModal";
 import {
@@ -41,7 +42,7 @@ import ExtensionMenu from "./components/ExtensionMenu";
 hljs.registerLanguage("javascript", javascript);
 
 const MODAL_EXIT_MS = 120;
-type ModalKey = "js" | "credits" | "settings" | "browserCompat";
+type ModalKey = "js" | "credits" | "settings" | "browserCompat" | "welcome";
 
 export default function App() {
   const [state, dispatch] = useReducer(spriteReducer, initialSpriteState);
@@ -56,6 +57,7 @@ export default function App() {
   const [showBrowserCompat, setShowBrowserCompat] = useState(
     shouldShowBrowserCompatWarning,
   );
+  const [showWelcome, setShowWelcome] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [closingModals, setClosingModals] = useState<Record<ModalKey, boolean>>(
     {
@@ -63,6 +65,7 @@ export default function App() {
       credits: false,
       settings: false,
       browserCompat: false,
+      welcome: false,
     },
   );
   const [showExtMenu, setShowExtMenu] = useState(false);
@@ -107,6 +110,15 @@ export default function App() {
     },
     [],
   );
+
+  const hasTriggeredWelcome = useRef(false);
+
+  useEffect(() => {
+    if (!showBrowserCompat && !hasTriggeredWelcome.current) {
+      hasTriggeredWelcome.current = true;
+      openModal("welcome", setShowWelcome);
+    }
+  }, [showBrowserCompat, openModal]);
 
   const updateProjectSettings = useCallback(
     (changes: Partial<ProjectSettings>) => {
@@ -232,6 +244,15 @@ export default function App() {
     closeModal("browserCompat", setShowBrowserCompat);
   }, [closeModal]);
 
+  const handleCloseWelcome = useCallback(
+    (settings: ProjectSettings, name: string) => {
+      setProjectSettings(settings);
+      setProjectName(name);
+      closeModal("welcome", setShowWelcome);
+    },
+    [closeModal],
+  );
+
   return (
     <SpriteContext.Provider value={{ state, dispatch: dispatchTracked }}>
       <ProjectSettingsContext.Provider
@@ -274,6 +295,15 @@ export default function App() {
           <BrowserCompatibilityModal
             isClosing={closingModals.browserCompat}
             onClose={handleCloseBrowserCompat}
+          />
+        )}
+
+        {showWelcome && (
+          <WelcomeModal
+            isClosing={closingModals.welcome}
+            onClose={handleCloseWelcome}
+            initialSettings={projectSettings}
+            initialProjectName={projectName}
           />
         )}
 
