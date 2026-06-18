@@ -28,6 +28,7 @@ const MORNING_GREETINGS = [
   "Good morning!",
   "Morning!",
   "Rise and create.",
+  "Rise and shine!",
 ];
 
 const AFTERNOON_GREETINGS = [
