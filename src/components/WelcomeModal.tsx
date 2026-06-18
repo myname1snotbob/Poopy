@@ -4,6 +4,7 @@ import { ProjectSettings, RESOLUTION_PRESETS } from "../lib/settings";
 interface WelcomeModalProps {
   isClosing?: boolean;
   onClose: (settings: ProjectSettings, projectName: string) => void;
+  onLoad: () => void;
   initialSettings: ProjectSettings;
   initialProjectName: string;
 }
@@ -63,6 +64,7 @@ function pickSubtitle() {
 export default function WelcomeModal({
   isClosing = false,
   onClose,
+  onLoad,
   initialSettings,
   initialProjectName,
 }: WelcomeModalProps) {
@@ -160,6 +162,12 @@ export default function WelcomeModal({
             onClick={() => onClose(settings, projectName)}
           >
             Start Creating
+          </button>
+          <button
+            className="btn welcome-load-btn"
+            onClick={onLoad}
+          >
+            Load Existing Project
           </button>
         </div>
       </div>

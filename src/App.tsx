@@ -219,6 +219,7 @@ export default function App() {
           setProjectSettings(project.settings);
           dispatch({ type: "LOAD_PROJECT", state: project.state });
           setIsDirty(false);
+          closeModal("welcome", setShowWelcome);
         } catch (err) {
           console.error("failed to load this project:", err);
           alert("There was an error loading the project file. The format is likely invalid.");
@@ -302,6 +303,7 @@ export default function App() {
           <WelcomeModal
             isClosing={closingModals.welcome}
             onClose={handleCloseWelcome}
+            onLoad={handleLoad}
             initialSettings={projectSettings}
             initialProjectName={projectName}
           />
