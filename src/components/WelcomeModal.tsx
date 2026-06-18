@@ -17,12 +17,34 @@ const SUBTITLES = [
   "Ready when you are.",
   "Time to bring an idea to life.",
   "What's the vision?",
+  "Your next project starts here.",
+  "Build something amazing.",
+  "Every great idea starts somewhere.",
+  "What are we making today?",
+  "Bring your imagination.",
+  "Turn ideas into reality.",
+  "Let's create together.",
+  "What's on your mind?",
+  "Dream it. Build it. Piece it.",
+  "Start with an idea.",
+  "Ready to make progress?",
+  "Create without limits.",
+  "Let's get to work.",
+  "Your project is waiting.",
+  "Make something you'll be proud of!",
 ];
 
 const NIGHT_GREETINGS = [
   "Good night!",
   "Late night session?",
   "Still up?",
+  "What's keeping you awake?",
+  "The night is young...",
+  "Creating after dark?",
+  "Can't sleep? Let's build.",
+  "Night owls welcome.",
+  "Making ideas happen tonight?",
+  "One more project before bed?",
 ];
 
 const MORNING_GREETINGS = [
@@ -30,17 +52,38 @@ const MORNING_GREETINGS = [
   "Morning!",
   "Rise and create.",
   "Rise and shine!",
+  "A fresh start awaits.",
+  "Ready to kick off the day?",
+  "Let's make today productive.",
+  "Hope you're feeling inspired.",
+  "Are you ready? Let's begin.",
+  "A new day, new ideas.",
+  "Let's build something today.",
+  "Time to get creative.",
 ];
 
 const AFTERNOON_GREETINGS = [
   "Good afternoon!",
   "Afternoon!",
+  "Hope your day's going well.",
+  "Back at it?",
+  "Let's keep the momentum going.",
+  "Ready for your next idea?",
+  "Hope you're having a productive day.",
+  "Let's make this afternoon count.",
 ];
 
 const EVENING_GREETINGS = [
   "Good evening!",
   "Evening!",
   "Winding down or just getting started?",
+  "Hope you're having a great evening.",
+  "Ready to create tonight?",
+  "Ending the day with a project?",
+  "Let's finish the day strong.",
+  "An evening of creativity awaits.",
+  "Perfect time to build something.",
+  "What's on the agenda tonight?",
 ];
 
 function getTimeGreeting() {
