@@ -1,7 +1,7 @@
 import * as Blockly from "blockly/core";
 import { javascriptGenerator, Order } from "blockly/javascript";
 import { ExtensionBridge } from "./bridge";
-import { defineExpandableValueBlock } from "../blocks/expandable";
+import { defineExpandableBlock } from "../blocks/expandable";
 import type {
   ExtensionBlockDef,
   ExtensionBlockType,
@@ -9,7 +9,7 @@ import type {
   ExtensionCodeHandlers,
   ExtensionFieldSpec,
   ExtensionInstance,
-  RegisteredExtension,
+  RegisteredExtension
 } from "./types";
 
 type ExtensionCategoryEntry = {
@@ -20,14 +20,7 @@ type ExtensionCategoryEntry = {
 
 type NormalizedExtensionBlockDef = Omit<
   ExtensionBlockDef,
-  | "id"
-  | "opcode"
-  | "text"
-  | "spec"
-  | "type"
-  | "blockType"
-  | "fields"
-  | "arguments"
+  "id" | "opcode" | "text" | "spec" | "type" | "blockType" | "fields" | "arguments"
 > & {
   id: string;
   text: string;
@@ -41,7 +34,7 @@ declare global {
       runBlock: (
         fullType: string,
         args: Record<string, unknown>,
-        context?: unknown,
+        context?: unknown
       ) => Promise<unknown>;
       registerExtension: typeof registerExtension;
     };
@@ -49,8 +42,7 @@ declare global {
 }
 
 export const activeExtensions: RegisteredExtension[] = [];
-export const extensionHandlers: Record<string, ExtensionCodeHandlers[string]> =
-  {};
+export const extensionHandlers: Record<string, ExtensionCodeHandlers[string]> = {};
 export const extensionBridges = new Map<string, ExtensionBridge>();
 
 const categoryEntries: ExtensionCategoryEntry[] = [];
@@ -66,7 +58,7 @@ export function subscribeExtensionChanges(listener: () => void) {
 }
 
 export function clearExtensions() {
-  extensionBridges.forEach((bridge) => bridge.terminate());
+  extensionBridges.forEach(bridge => bridge.terminate());
   extensionBridges.clear();
 
   for (const key in extensionHandlers) {
@@ -80,8 +72,8 @@ export function clearExtensions() {
 }
 
 function menuItems(items: Extract<ExtensionFieldSpec, { kind: "menu" }>["items"]) {
-  return items.map((item) =>
-    typeof item === "string" ? [item, item] : [item.text, item.value],
+  return items.map(item =>
+    typeof item === "string" ? [item, item] : [item.text, item.value]
   ) as [string, string][];
 }
 
@@ -98,7 +90,7 @@ function normalizeBlockType(blockDef: ExtensionBlockDef): ExtensionBlockType {
 }
 
 function normalizeBlockDef(
-  blockDef: ExtensionBlockDef,
+  blockDef: ExtensionBlockDef
 ): NormalizedExtensionBlockDef | null {
   const id = blockDef.id ?? blockDef.opcode;
   if (!id) return null;
@@ -108,12 +100,12 @@ function normalizeBlockDef(
     id,
     text: blockDef.text ?? blockDef.spec ?? id,
     type: normalizeBlockType(blockDef),
-    fields: blockDef.fields ?? blockDef.arguments ?? {},
+    fields: blockDef.fields ?? blockDef.arguments ?? {}
   };
 }
 
 function isValueSpec(
-  spec: ExtensionFieldSpec,
+  spec: ExtensionFieldSpec
 ): spec is Extract<ExtensionFieldSpec, { kind?: "value" }> {
   return (spec.kind ?? "value") === "value";
 }
@@ -121,7 +113,7 @@ function isValueSpec(
 function textToBlock(
   block: Blockly.Block,
   text: string,
-  fields: Record<string, ExtensionFieldSpec> = {},
+  fields: Record<string, ExtensionFieldSpec> = {}
 ) {
   const regex = /\[([^\]]+)\]/g;
   let lastIndex = 0;
@@ -135,18 +127,13 @@ function textToBlock(
     const spec = fields[inputName];
 
     if (spec?.kind === "statement") {
-      block
-        .appendStatementInput(inputName)
-        .setCheck(spec.accepts ?? "default");
+      block.appendStatementInput(inputName).setCheck(spec.accepts ?? "default");
     } else if (spec && isValueSpec(spec)) {
       block.appendValueInput(inputName).setCheck(spec.type ?? null);
     } else if (spec?.kind === "menu") {
       block
         .appendDummyInput()
-        .appendField(
-          new Blockly.FieldDropdown(menuItems(spec.items)),
-          inputName,
-        );
+        .appendField(new Blockly.FieldDropdown(menuItems(spec.items)), inputName);
       if (spec.default) block.setFieldValue(spec.default, inputName);
     } else {
       block.appendDummyInput().appendField(`[${inputName}]`);
@@ -163,7 +150,7 @@ function buildShadowElement(
   document: Document,
   namespace: string,
   type: string | string[] | null | undefined,
-  defaultValue: unknown,
+  defaultValue: unknown
 ) {
   const primaryType = Array.isArray(type) ? type[0] : type;
   const config =
@@ -171,10 +158,10 @@ function buildShadowElement(
       ? { type: "math_number", field: "NUM", value: defaultValue ?? 0 }
       : primaryType === "Boolean"
         ? {
-          type: "checkbox",
-          field: "BOOL",
-          value: defaultValue ? "TRUE" : "FALSE",
-        }
+            type: "checkbox",
+            field: "BOOL",
+            value: defaultValue ? "TRUE" : "FALSE"
+          }
         : primaryType === "String" || primaryType == null
           ? { type: "text", field: "TEXT", value: defaultValue ?? "" }
           : null;
@@ -194,7 +181,7 @@ function buildBlockElement(
   document: Document,
   namespace: string,
   blockType: string,
-  fields: Record<string, ExtensionFieldSpec> = {},
+  fields: Record<string, ExtensionFieldSpec> = {}
 ) {
   const block = document.createElementNS(namespace, "block");
   block.setAttribute("type", blockType);
@@ -203,12 +190,7 @@ function buildBlockElement(
     if (!isValueSpec(spec) || spec.default === undefined) continue;
     const value = document.createElementNS(namespace, "value");
     value.setAttribute("name", name);
-    const shadow = buildShadowElement(
-      document,
-      namespace,
-      spec.type,
-      spec.default,
-    );
+    const shadow = buildShadowElement(document, namespace, spec.type, spec.default);
     if (shadow) value.appendChild(shadow);
     block.appendChild(value);
   }
@@ -219,7 +201,7 @@ function buildBlockElement(
 function buildCategoryElement(
   document: Document,
   namespace: string,
-  entry: ExtensionCategoryEntry,
+  entry: ExtensionCategoryEntry
 ) {
   if (!entry.category) return null;
 
@@ -232,18 +214,14 @@ function buildCategoryElement(
 
   for (const [blockType, blockDef] of Object.entries(entry.blocks)) {
     category.appendChild(
-      buildBlockElement(document, namespace, blockType, blockDef.fields),
+      buildBlockElement(document, namespace, blockType, blockDef.fields)
     );
   }
 
   return category;
 }
 
-function registerBlocks(
-  id: string,
-  blocks: ExtensionBlockDef[],
-  categoryColor: string,
-) {
+function registerBlocks(id: string, blocks: ExtensionBlockDef[], categoryColor: string) {
   const blockDefs: Record<string, NormalizedExtensionBlockDef> = {};
 
   for (const rawBlockDef of blocks) {
@@ -257,7 +235,7 @@ function registerBlocks(
     blockDefs[blockType] = blockDef;
 
     if (blockDef.expandable) {
-      defineExpandableValueBlock({
+      defineExpandableBlock({
         type: blockType,
         color: blockDef.color ?? categoryColor,
         output: blockDef.outputType,
@@ -267,12 +245,16 @@ function registerBlocks(
         initialItemCount: blockDef.initialItemCount,
         minItemCount: blockDef.minItemCount,
         maxItemCount: blockDef.maxItemCount,
-        inputPrefix: blockDef.inputPrefix,
         emptyLabel: blockDef.emptyLabel,
         firstInputLabel: blockDef.firstInputLabel,
-        inputCheck: blockDef.inputCheck,
-        shadow: blockDef.shadow,
         tooltip: blockDef.tooltip,
+        slots: [
+          {
+            prefix: blockDef.inputPrefix ?? "ADD",
+            check: blockDef.inputCheck,
+            shadow: blockDef.shadow
+          }
+        ]
       });
     } else {
       Blockly.Blocks[blockType] = {
@@ -281,35 +263,28 @@ function registerBlocks(
 
           switch (blockDef.type) {
             case "statement":
-              this.setPreviousStatement(
-                true,
-                blockDef.statementType ?? "default",
-              );
+              this.setPreviousStatement(true, blockDef.statementType ?? "default");
               this.setNextStatement(true, blockDef.statementType ?? "default");
               break;
             case "cap":
-              this.setPreviousStatement(
-                true,
-                blockDef.statementType ?? "default",
-              );
+              this.setPreviousStatement(true, blockDef.statementType ?? "default");
               break;
             case "output":
               this.setOutput(true, blockDef.outputType ?? null);
               if (blockDef.outputShape) {
-                (this as Blockly.Block & { setOutputShape?: (shape: number) => void })
-                  .setOutputShape?.(blockDef.outputShape);
+                (
+                  this as Blockly.Block & { setOutputShape?: (shape: number) => void }
+                ).setOutputShape?.(blockDef.outputShape);
               }
               break;
             case "dual":
-              this.setPreviousStatement(
-                true,
-                blockDef.statementType ?? "default",
-              );
+              this.setPreviousStatement(true, blockDef.statementType ?? "default");
               this.setNextStatement(true, blockDef.statementType ?? "default");
               this.setOutput(true, blockDef.outputType ?? null);
               if (blockDef.outputShape) {
-                (this as Blockly.Block & { setOutputShape?: (shape: number) => void })
-                  .setOutputShape?.(blockDef.outputShape);
+                (
+                  this as Blockly.Block & { setOutputShape?: (shape: number) => void }
+                ).setOutputShape?.(blockDef.outputShape);
               }
               break;
           }
@@ -317,7 +292,7 @@ function registerBlocks(
           if (blockDef.tooltip) this.setTooltip(blockDef.tooltip);
           this.setColour(String(blockDef.color ?? categoryColor));
           this.setInputsInline(blockDef.inlineInputs ?? true);
-        },
+        }
       };
     }
   }
@@ -327,7 +302,7 @@ function registerBlocks(
 
 function collectInputs(
   block: Blockly.Block & { itemCount_?: number },
-  fields: Record<string, ExtensionFieldSpec> = {},
+  fields: Record<string, ExtensionFieldSpec> = {}
 ) {
   const inputs: Record<string, string> = {};
 
@@ -364,7 +339,7 @@ function registerCodeGenerators(
   id: string,
   codeGen: ExtensionCodeHandlers | Record<string, true>,
   blockDefs: Record<string, NormalizedExtensionBlockDef>,
-  trusted: boolean,
+  trusted: boolean
 ) {
   for (const blockId of Object.keys(codeGen)) {
     const fullType = `${id}_${blockId}`;
@@ -392,7 +367,7 @@ function registerCodeGenerators(
 async function runBlock(
   fullType: string,
   args: Record<string, unknown>,
-  context?: unknown,
+  context?: unknown
 ) {
   const trustedHandler = extensionHandlers[fullType];
   if (trustedHandler) return trustedHandler(args, context);
@@ -406,7 +381,7 @@ async function runBlock(
 function installRuntimeGlobal() {
   window.ANTIMONY_EXTENSIONS = {
     runBlock,
-    registerExtension,
+    registerExtension
   };
 }
 
@@ -416,9 +391,9 @@ function finishRegistration(
   trusted: boolean,
   category: ExtensionCategoryDef | null,
   blocks: ExtensionBlockDef[],
-  codeGen: ExtensionCodeHandlers | Record<string, true>,
+  codeGen: ExtensionCodeHandlers | Record<string, true>
 ) {
-  if (activeExtensions.some((entry) => entry.id === id)) {
+  if (activeExtensions.some(entry => entry.id === id)) {
     console.warn(`Extension "${id}" is already registered; skipping`);
     return;
   }
@@ -444,15 +419,15 @@ export async function registerExtension(codeString: string, trusted = false) {
       true,
       extension.registerCategory?.() ?? null,
       extension.registerBlocks?.() ?? [],
-      extension.registerCode?.() ?? {},
+      extension.registerCode?.() ?? {}
     );
     return;
   }
 
   await new Promise<void>((resolve, reject) => {
-    const bridge = new ExtensionBridge("temp_id", codeString, (extInfo) => {
+    const bridge = new ExtensionBridge("temp_id", codeString, extInfo => {
       const id = extInfo.id;
-      if (activeExtensions.some((entry) => entry.id === id)) {
+      if (activeExtensions.some(entry => entry.id === id)) {
         bridge.terminate();
         resolve();
         return;
@@ -467,13 +442,13 @@ export async function registerExtension(codeString: string, trusted = false) {
         extInfo.category,
         extInfo.blocks,
         Object.fromEntries(
-          (extInfo.codeGen as string[]).map((blockId) => [blockId, true]),
-        ) as Record<string, true>,
+          (extInfo.codeGen as string[]).map(blockId => [blockId, true])
+        ) as Record<string, true>
       );
       resolve();
     });
 
-    bridge.worker.addEventListener("error", (event) => {
+    bridge.worker.addEventListener("error", event => {
       bridge.terminate();
       reject(event.error ?? new Error(event.message));
     });
@@ -482,8 +457,7 @@ export async function registerExtension(codeString: string, trusted = false) {
 
 export function appendExtensionCategories(toolbox: Element) {
   const document = toolbox.ownerDocument;
-  const namespace =
-    toolbox.namespaceURI ?? "https://developers.google.com/blockly/xml";
+  const namespace = toolbox.namespaceURI ?? "https://developers.google.com/blockly/xml";
 
   for (const entry of categoryEntries) {
     const category = buildCategoryElement(document, namespace, entry);

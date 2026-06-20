@@ -10,9 +10,17 @@ export type ExpandableShadow = {
   fields?: Record<string, ShadowFieldValue>;
 };
 
-export type ExpandableValueBlockOptions = {
+export type ExpandableSlotDef = {
+  prefix: string;
+  check?: string | string[] | null;
+  shadow?: ExpandableShadow | ((index: number) => ExpandableShadow | null);
+  appendLabels?: string[];
+};
+
+export type ExpandableBlockOptions = {
   type: string;
   style?: string;
+  color?: string;
   output?: string | string[] | null;
   outputShape?: number;
   previousStatement?: string | string[] | null;
@@ -20,11 +28,10 @@ export type ExpandableValueBlockOptions = {
   initialItemCount?: number;
   minItemCount?: number;
   maxItemCount?: number;
-  inputPrefix?: string;
   emptyLabel?: string;
   firstInputLabel?: string;
-  inputCheck?: string | string[] | null;
-  shadow?: ExpandableShadow | ((index: number) => ExpandableShadow | null);
+  slots: ExpandableSlotDef[];
+  inputsInline?: boolean;
   tooltip?: string;
 };
 
@@ -35,21 +42,21 @@ export type ExpandableBlock = Blockly.Block & {
   decrease_: () => void;
 };
 
-function arrowIcon(direction: "left" | "right") {
+export function arrowIcon(direction: "left" | "right") {
   const Icon = direction === "left" ? ArrowBigLeft : ArrowBigRight;
   const svg = renderToStaticMarkup(
     createElement(Icon, {
       size: 30,
       strokeWidth: 2.5,
       color: "white",
-      "aria-hidden": true,
-    }),
+      "aria-hidden": true
+    })
   );
 
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
 
-function createShadowDom(template: ExpandableShadow) {
+export function createShadowDom(template: ExpandableShadow) {
   const shadow = Blockly.utils.xml.createElement("shadow");
   shadow.setAttribute("type", template.type);
 
@@ -63,20 +70,19 @@ function createShadowDom(template: ExpandableShadow) {
   return shadow;
 }
 
-function getShadow(
-  options: ExpandableValueBlockOptions,
-  index: number,
+export function getShadow(
+  shadowField:
+    | ExpandableShadow
+    | ((index: number) => ExpandableShadow | null)
+    | undefined
+    | null,
+  index: number
 ): ExpandableShadow | null {
-  if (!options.shadow) return null;
-  return typeof options.shadow === "function"
-    ? options.shadow(index)
-    : options.shadow;
+  if (!shadowField) return null;
+  return typeof shadowField === "function" ? shadowField(index) : shadowField;
 }
 
-export function defineExpandableValueBlock(
-  options: ExpandableValueBlockOptions & { color?: string },
-) {
-  const inputPrefix = options.inputPrefix ?? "ADD";
+export function defineExpandableBlock(options: ExpandableBlockOptions) {
   const minItemCount = options.minItemCount ?? 0;
   const maxItemCount = options.maxItemCount ?? 99;
   const initialItemCount = options.initialItemCount ?? minItemCount;
@@ -84,7 +90,7 @@ export function defineExpandableValueBlock(
   Blockly.Blocks[options.type] = {
     init: function (this: ExpandableBlock) {
       this.itemCount_ = initialItemCount;
-      this.setInputsInline(true);
+      this.setInputsInline(options.inputsInline ?? true);
       if (options.color) {
         this.setColour(options.color);
       } else if (options.style) {
@@ -92,8 +98,9 @@ export function defineExpandableValueBlock(
       }
       if (options.output !== undefined) this.setOutput(true, options.output);
       if (options.outputShape !== undefined) {
-        (this as Blockly.Block & { setOutputShape?: (shape: number) => void })
-          .setOutputShape?.(options.outputShape);
+        (
+          this as Blockly.Block & { setOutputShape?: (shape: number) => void }
+        ).setOutputShape?.(options.outputShape);
       }
       if (options.previousStatement !== undefined) {
         this.setPreviousStatement(true, options.previousStatement);
@@ -123,12 +130,10 @@ export function defineExpandableValueBlock(
 
     loadExtraState: function (
       this: ExpandableBlock,
-      state: { itemCount?: number } | null,
+      state: { itemCount?: number } | null
     ) {
       this.itemCount_ =
-        state && typeof state.itemCount === "number"
-          ? state.itemCount
-          : initialItemCount;
+        state && typeof state.itemCount === "number" ? state.itemCount : initialItemCount;
       this.updateShape_();
     },
 
@@ -137,35 +142,47 @@ export function defineExpandableValueBlock(
       if (this.getInput("EMPTY")) this.removeInput("EMPTY");
 
       if (this.itemCount_ === 0) {
-        this.appendDummyInput("EMPTY").appendField(
-          options.emptyLabel ?? "empty",
-        );
+        this.appendDummyInput("EMPTY").appendField(options.emptyLabel ?? "empty");
       } else {
         for (let i = 0; i < this.itemCount_; i++) {
-          let input = this.getInput(`${inputPrefix}${i}`);
+          for (let s = 0; s < options.slots.length; s++) {
+            const slot = options.slots[s];
+            const inputName = `${slot.prefix}${i}`;
+            let input = this.getInput(inputName);
 
-          if (!input) {
-            input = this.appendValueInput(`${inputPrefix}${i}`).setCheck(
-              options.inputCheck ?? null,
-            );
-            input.setAlign(Blockly.inputs.Align.RIGHT);
+            if (!input) {
+              input = this.appendValueInput(inputName).setCheck(slot.check ?? null);
+              input.setAlign(Blockly.inputs.Align.RIGHT);
 
-            const shadow = getShadow(options, i);
-            if (shadow) input.connection?.setShadowDom(createShadowDom(shadow));
-          }
+              if (i === 0 && s === 0 && options.firstInputLabel) {
+                input.appendField(options.firstInputLabel);
+              }
 
-          if (i === 0 && options.firstInputLabel && !input.fieldRow.length) {
-            input.appendField(options.firstInputLabel);
+              for (const label of slot.appendLabels ?? []) {
+                input.appendField(label);
+              }
+
+              const shadow = getShadow(slot.shadow, i);
+              if (shadow) input.connection?.setShadowDom(createShadowDom(shadow));
+            }
           }
         }
       }
 
-      for (let i = this.itemCount_; this.getInput(`${inputPrefix}${i}`); i++) {
-        this.removeInput(`${inputPrefix}${i}`);
+      for (let i = this.itemCount_; ; i++) {
+        let removed = false;
+        for (const slot of options.slots) {
+          const name = `${slot.prefix}${i}`;
+          if (this.getInput(name)) {
+            this.removeInput(name);
+            removed = true;
+          }
+        }
+        if (!removed) break;
       }
 
       const arrowsInput = this.appendDummyInput("ARROWS").setAlign(
-        Blockly.inputs.Align.RIGHT,
+        Blockly.inputs.Align.RIGHT
       );
 
       if (this.itemCount_ > minItemCount) {
@@ -175,8 +192,8 @@ export function defineExpandableValueBlock(
             18,
             24,
             "remove an input",
-            this.decrease_.bind(this),
-          ),
+            this.decrease_.bind(this)
+          )
         );
       }
 
@@ -186,8 +203,8 @@ export function defineExpandableValueBlock(
           18,
           24,
           "add an input",
-          this.increase_.bind(this),
-        ),
+          this.increase_.bind(this)
+        )
       );
     },
 
@@ -203,6 +220,6 @@ export function defineExpandableValueBlock(
       this.itemCount_--;
       this.updateShape_();
       (this as unknown as Blockly.BlockSvg).render();
-    },
+    }
   };
 }
