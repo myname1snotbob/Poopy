@@ -4,7 +4,7 @@
   registerCategory() {
     return {
       name: "Sets",
-      color: "#80e669",
+      color: "#4ed385",
     };
   }
 
