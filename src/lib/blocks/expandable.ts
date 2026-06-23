@@ -42,20 +42,6 @@ export type ExpandableBlock = Blockly.Block & {
   decrease_: () => void;
 };
 
-export function arrowIcon(direction: "left" | "right") {
-  const Icon = direction === "left" ? ArrowBigLeft : ArrowBigRight;
-  const svg = renderToStaticMarkup(
-    createElement(Icon, {
-      size: 30,
-      strokeWidth: 2.5,
-      color: "white",
-      "aria-hidden": true
-    })
-  );
-
-  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
-}
-
 export function createShadowDom(template: ExpandableShadow) {
   const shadow = Blockly.utils.xml.createElement("shadow");
   shadow.setAttribute("type", template.type);
@@ -188,7 +174,7 @@ export function defineExpandableBlock(options: ExpandableBlockOptions) {
       if (this.itemCount_ > minItemCount) {
         arrowsInput.appendField(
           new Blockly.FieldImage(
-            arrowIcon("left"),
+            "/arrow-left.svg",
             18,
             24,
             "remove an input",
@@ -199,7 +185,7 @@ export function defineExpandableBlock(options: ExpandableBlockOptions) {
 
       arrowsInput.appendField(
         new Blockly.FieldImage(
-          arrowIcon("right"),
+          "/arrow-right.svg",
           18,
           24,
           "add an input",
