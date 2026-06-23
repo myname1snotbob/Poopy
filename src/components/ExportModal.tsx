@@ -1,4 +1,4 @@
-import { X, Gauge, FileVideo, Loader2, HardDrive } from "lucide-react";
+import { X, Gauge, FileVideo, Loader2, HardDrive, Video } from "lucide-react";
 import { useState } from "react";
 
 interface ExportModalProps {
@@ -9,6 +9,7 @@ interface ExportModalProps {
   isExporting: boolean;
   isEncoding: boolean;
   progress: number | null;
+  frameCount?: number;
 }
 
 export interface ExportOptions {
@@ -26,6 +27,7 @@ export default function ExportModal({
   isExporting,
   isEncoding,
   progress,
+  frameCount = 0,
 }: ExportModalProps) {
   const [fps, setFps] = useState(defaultFps);
   const [format, setFormat] = useState<"mp4" | "webm" | "gif">("mp4");
@@ -33,6 +35,8 @@ export default function ExportModal({
   const [quality, setQuality] = useState<"balanced" | "quality" | "realtime">(
     "quality",
   );
+
+  const isRecording = isExporting && !isEncoding;
 
   return (
     <div
@@ -45,23 +49,20 @@ export default function ExportModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-header">
-          <h2>{isEncoding ? "Exporting..." : "Export Video"}</h2>
-          {!isEncoding && (
-            <button
-              className="close-modal-btn"
-              onClick={onClose}
-              disabled={isExporting}
-            >
+          <h2>
+            {isRecording ? "Recording..." : isEncoding ? "Exporting..." : "Export Video"}
+          </h2>
+          {!isExporting && !isEncoding && (
+            <button className="close-modal-btn" onClick={onClose}>
               <X size={18} />
             </button>
           )}
         </div>
         <div className="modal-body settings-modal-body">
-          {!isEncoding && (
+          {!isExporting && !isEncoding && (
             <>
               <div className="export-warning">
-                You may hear slight audio distortion during the recording
-                process. This will not be present in the final exported video.
+                The exporting process is highly unstable at the moment. Please report any bugs you find to us through Discord!
               </div>
               <section className="settings-section">
                 <div className="settings-section-title">
@@ -76,7 +77,6 @@ export default function ExportModal({
                     min={1}
                     max={60}
                     value={fps}
-                    disabled={isExporting}
                     onChange={(e) =>
                       setFps(parseInt(e.target.value, 10) || defaultFps)
                     }
@@ -87,7 +87,6 @@ export default function ExportModal({
                   <select
                     className="settings-select"
                     value={format}
-                    disabled={isExporting}
                     onChange={(e) => setFormat(e.target.value as any)}
                   >
                     <option value="mp4">MP4 (H.264)</option>
@@ -110,7 +109,7 @@ export default function ExportModal({
                     min={1}
                     max={50}
                     value={bitrate}
-                    disabled={isExporting || format === "gif"}
+                    disabled={format === "gif"}
                     onChange={(e) =>
                       setBitrate(parseInt(e.target.value, 10) || 10)
                     }
@@ -121,7 +120,6 @@ export default function ExportModal({
                   <select
                     className="settings-select"
                     value={quality}
-                    disabled={isExporting}
                     onChange={(e) => setQuality(e.target.value as any)}
                   >
                     <option value="quality">High Quality</option>
@@ -131,6 +129,20 @@ export default function ExportModal({
                 </div>
               </section>
             </>
+          )}
+
+          {isRecording && (
+            <div className="export-encoding-body">
+              <div className="export-encoding-icon">
+                <Video size={28} />
+              </div>
+              <div className="export-encoding-label">
+                {frameCount > 0 ? `${frameCount} frame${frameCount === 1 ? "" : "s"} captured` : "Starting..."}
+              </div>
+              <div className="export-encoding-sublabel">
+                Recording in background, do not close this window...
+              </div>
+            </div>
           )}
 
           {isEncoding && (

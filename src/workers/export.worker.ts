@@ -10,6 +10,38 @@ import {
 } from "mediabunny";
 import { GIFEncoder, quantize, applyPalette } from "gifenc";
 
+function buildAudioPayload(
+  audioSamples: unknown[],
+): { data: Float32Array } | null {
+  const validSamples = audioSamples.filter(
+    (sample): sample is Float32Array =>
+      sample instanceof Float32Array &&
+      sample.length >= 2 &&
+      sample.length % 2 === 0,
+  );
+
+  if (validSamples.length === 0) return null;
+
+  let totalSampleCount = 0;
+  for (const sample of validSamples) {
+    totalSampleCount += sample.length / 2;
+  }
+
+  if (totalSampleCount <= 0) return null;
+
+  const data = new Float32Array(totalSampleCount * 2);
+  let offset = 0;
+
+  for (const sample of validSamples) {
+    const half = sample.length / 2;
+    data.set(sample.subarray(0, half), offset);
+    data.set(sample.subarray(half), totalSampleCount + offset);
+    offset += half;
+  }
+
+  return { data };
+}
+
 self.onmessage = async (e: MessageEvent) => {
   const { options, frames, audioSamples, sampleRate, fps, width, height, isChromium } =
     e.data;
@@ -64,6 +96,7 @@ self.onmessage = async (e: MessageEvent) => {
 
     const isMP4 = options.format === "mp4";
     const frameDuration = 1 / fps;
+    const audioPayload = buildAudioPayload(audioSamples);
 
     const target = new BufferTarget();
     const output = new Output({
@@ -74,7 +107,8 @@ self.onmessage = async (e: MessageEvent) => {
     const videoSource = new VideoSampleSource({
       codec: isMP4 ? "avc" : "vp9",
       bitrate: options.bitrate,
-      latencyMode: options.quality,
+      latencyMode: "realtime",
+      keyFrameInterval: Math.max(1, Math.round(fps)),
       colorSpace: {
         primaries: "bt709",
         transfer: "bt709",
@@ -83,11 +117,9 @@ self.onmessage = async (e: MessageEvent) => {
       },
     } as any);
 
-    const hasAudio = Array.isArray(audioSamples) && audioSamples.length > 0;
-
-    const audioSource = hasAudio
+    const audioSource = audioPayload
       ? new AudioSampleSource({
-          codec: (isMP4 && isChromium) ? "aac" : "opus",
+          codec: isMP4 && isChromium ? "aac" : "opus",
           sampleRate,
           numberOfChannels: 2,
           bitrate: 192000,
@@ -98,11 +130,25 @@ self.onmessage = async (e: MessageEvent) => {
     if (audioSource) output.addAudioTrack(audioSource);
     await output.start();
 
+    if (audioSource && audioPayload) {
+      const audioSample = new AudioSample({
+        format: "f32-planar",
+        sampleRate,
+        numberOfChannels: 2,
+        timestamp: 0,
+        data: audioPayload.data.buffer,
+      });
+      try {
+        await audioSource.add(audioSample);
+      } finally {
+        audioSample.close();
+      }
+    }
+
     for (let i = 0; i < frames.length; i++) {
       const bitmap = frames[i] as ImageBitmap;
       const timestamp = i * frameDuration;
       let sample: VideoSample | null = null;
-      let audioSample: AudioSample | null = null;
 
       try {
         sample = new VideoSample(bitmap, {
@@ -116,22 +162,9 @@ self.onmessage = async (e: MessageEvent) => {
           },
         } as any);
 
-        await videoSource.add(sample, { keyFrame: i % 60 === 0 });
-
-        if (audioSource && audioSamples[i]) {
-          const pcm = audioSamples[i] as Float32Array;
-          audioSample = new AudioSample({
-            format: "f32-planar",
-            sampleRate,
-            numberOfChannels: 2,
-            timestamp,
-            data: pcm.buffer,
-          });
-          await audioSource.add(audioSample);
-        }
+        await videoSource.add(sample, { keyFrame: i === 0 || i % Math.max(1, Math.round(fps)) === 0 });
       } finally {
         if (sample) sample.close();
-        if (audioSample) audioSample.close();
         bitmap.close();
       }
 
@@ -150,6 +183,6 @@ self.onmessage = async (e: MessageEvent) => {
     const buffer = target.buffer as ArrayBuffer;
     (self as any).postMessage({ type: "done", buffer }, [buffer]);
   } catch (err: any) {
-    (self as any).postMessage({ type: "error", error: err.message });
+    (self as any).postMessage({ type: "error", error: err?.message ?? String(err) });
   }
 };

@@ -1,4 +1,4 @@
-import type { Sprite, SpriteAction } from "./sprites";
+import { isMediaData, isVideoData, type Sprite, type SpriteAction } from "./sprites";
 import type { Dispatch } from "react";
 import {
   applyTweenMode,
@@ -146,7 +146,7 @@ class Runtime {
   private frameTimeoutId: ReturnType<typeof setTimeout> | null = null;
   private lastFrameTime = 0;
 
-  private isStepping = false;
+  public isStepping = false;
   public virtualTime = 0;
   private virtualDelayWaiters = new Set<{
     targetTime: number;
@@ -488,7 +488,7 @@ class Runtime {
       (window as unknown as { OfflineAudioContext?: typeof OfflineAudioContext })
         .OfflineAudioContext ??
       (window as unknown as { webkitOfflineAudioContext?: typeof OfflineAudioContext })
-        .webkitOfflineAudioContext;
+          .webkitOfflineAudioContext;
     if (!OfflineCtx) return buffer;
 
     try {
@@ -610,42 +610,83 @@ class Runtime {
 
     const spritesSnapshot = this.spritesProvider?.() ?? [];
     for (const [id] of this.sprites.entries()) {
-      const spriteData = spritesSnapshot.find((s) => s.id === id)?.data as
-        | {
-            images?: { id: string; src?: string }[];
-            currentImageId?: string | null;
-          }
-        | undefined;
-      if (!spriteData || !spriteData.images || !spriteData.currentImageId)
-        continue;
+      const sprite = spritesSnapshot.find((s) => s.id === id);
+      if (!sprite) continue;
 
-      const image = spriteData.images.find(
-        (img) => img.id === spriteData.currentImageId,
-      );
-      if (!image || !image.src) continue;
+      let src: string | undefined = undefined;
+      let videoPlaying = false;
+      let videoVolume = 1;
+      let videoPlaybackRate = 1;
+      let videoLoop = false;
+      let videoCurrentTime = 0;
 
-      if (
-        image.src.startsWith("data:video/") ||
-        /\.(mp4|webm|ogg|mov)$/i.test(image.src)
-      ) {
-        const buffer = this.audioBufferCache.get(image.src);
+      if (sprite.type === "video" && isVideoData(sprite.data)) {
+        const video = sprite.data;
+        const activeVideo = video.videos.find((v) => v.id === video.currentVideoId) ?? video.videos[0];
+        src = activeVideo?.src;
+        
+        const liveSprite = this.sprites.get(id)?.sprite as any;
+        if (liveSprite) {
+          videoPlaying = liveSprite.videoPlaying;
+          videoVolume = liveSprite.videoVolume ?? 1;
+          videoPlaybackRate = liveSprite.videoPlaybackRate ?? 1;
+          videoLoop = liveSprite.videoLoop;
+          videoCurrentTime = liveSprite.videoCurrentTime ?? 0;
+        }
+      } else if (sprite.type === "media" && isMediaData(sprite.data)) {
+        const media = sprite.data;
+        const activeImage = media.images.find((img) => img.id === media.currentImageId) ?? media.images[0];
+        if (activeImage && (activeImage.src.startsWith("data:video/") || /\.(mp4|webm|ogg|mov)$/i.test(activeImage.src))) {
+          src = activeImage.src;
+          videoPlaying = true;
+          videoVolume = 1;
+          videoPlaybackRate = 1;
+          videoLoop = true;
+        }
+      }
+
+      if (src) {
+        const buffer = this.audioBufferCache.get(src);
         if (!buffer) {
-          this.decodeAudio(image.src);
+          this.decodeAudio(src);
           continue;
         }
 
-        const ch0 = buffer.getChannelData(0);
-        const ch1 =
-          buffer.numberOfChannels > 1 ? buffer.getChannelData(1) : ch0;
-        mix(
-          ch0,
-          ch1,
-          buffer.sampleRate,
-          this.virtualTime / 1000,
-          true,
-          1,
-          () => 1,
-        );
+        if (videoPlaying && videoVolume > 0) {
+          const ch0 = buffer.getChannelData(0);
+          const ch1 = buffer.numberOfChannels > 1 ? buffer.getChannelData(1) : ch0;
+          
+          const audioSampleRate = buffer.sampleRate;
+          const len = ch0.length;
+
+          for (let i = 0; i < numSamples; i++) {
+            const sampleTime = i / sampleRate;
+            const currentVideoTime = videoCurrentTime + sampleTime * videoPlaybackRate;
+
+            if (currentVideoTime >= buffer.duration && !videoLoop) {
+              continue;
+            }
+
+            const adjustedTime = videoLoop ? (currentVideoTime % buffer.duration) : currentVideoTime;
+            const pos = adjustedTime * audioSampleRate;
+            const idx0 = Math.floor(pos);
+            const idx1 = idx0 + 1;
+            const t = pos - idx0;
+
+            const i0 = idx0 % len;
+            const i1 = idx1 % len;
+
+            if (i0 < 0 || i0 >= len) continue;
+
+            const s0L = ch0[i0];
+            const s1L = i1 < len ? ch0[i1] : s0L;
+            const s0R = ch1[i0];
+            const s1R = i1 < len ? ch1[i1] : s0R;
+
+            left[i] += (s0L + (s1L - s0L) * t) * videoVolume;
+            right[i] += (s0R + (s1R - s0R) * t) * videoVolume;
+          }
+        }
       }
     }
 
@@ -967,7 +1008,6 @@ class Runtime {
         );
         this.masterGain.gain.value = 1;
       } catch {
-        // ignore
       }
     }
   }
@@ -976,11 +1016,11 @@ class Runtime {
     this.stopAllSounds();
     this.activePlayingSounds.clear();
     if (this.masterGain) {
-      try { this.masterGain.disconnect(); } catch { /* ignore */ }
+      try { this.masterGain.disconnect(); } catch { }
       this.masterGain = null;
     }
     if (this.audioContext) {
-      try { this.audioContext.close(); } catch { /* ignore */ }
+      try { this.audioContext.close(); } catch { }
       this.audioContext = null;
     }
     this.resetAudioState();
@@ -1129,7 +1169,6 @@ class Runtime {
         voice.source.disconnect();
         voice.gain.disconnect();
       } catch {
-        // ignore
       }
     }
     this.liveVoices.delete(id);
@@ -1144,7 +1183,6 @@ class Runtime {
           voice.source.disconnect();
           voice.gain.disconnect();
         } catch {
-          // ignore
         }
       }
     }
@@ -1556,6 +1594,22 @@ class Runtime {
         if (sound.src) sources.add(sound.src);
       }
     }
+    const spritesSnapshot = this.spritesProvider?.() ?? [];
+    for (const sprite of spritesSnapshot) {
+      if (sprite.type === "media" && isMediaData(sprite.data)) {
+        for (const img of sprite.data.images) {
+          if (img.src && (img.src.startsWith("data:video/") || /\.(mp4|webm|ogg|mov)$/i.test(img.src))) {
+            sources.add(img.src);
+          }
+        }
+      } else if (sprite.type === "video" && isVideoData(sprite.data)) {
+        for (const v of sprite.data.videos) {
+          if (v.src) {
+            sources.add(v.src);
+          }
+        }
+      }
+    }
     if (sources.size === 0) return;
     await Promise.all(Array.from(sources, (src) => this.decodeAudio(src)));
   }
@@ -1572,7 +1626,7 @@ class Runtime {
     try {
       const ctx = await this.ensureAudioRunning();
       if (!ctx || ctx.state !== "running") return;
-    } catch { /* ignore */ }
+    } catch { }
 
     const myEpoch = this.runEpoch;
 

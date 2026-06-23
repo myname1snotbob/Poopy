@@ -370,7 +370,7 @@ function SpriteRenderer({
   const isVideo = useMemo(() => {
     if (sprite.type === "video") return true;
     if (!mediaSrc) return false;
-    if (mediaSrc.startsWith("data:video/")) return true;
+    if (mediaSrc.startsWith("data:video/") || mediaSrc.startsWith("blob:")) return true;
     return /\.(mp4|webm|ogg|mov)$/i.test(mediaSrc);
   }, [mediaSrc, sprite.type]);
 
@@ -452,13 +452,14 @@ function SpriteRenderer({
             return;
           }
           const rt = (window as any).RUNTIME;
-          if (rt && rt.isStepping) {
-            mediaElement.currentTime = rt.virtualTime / 1000;
-          } else {
-            const shouldPlay = videoShouldPlayRef.current && !isPaused;
-            if (shouldPlay && mediaElement.paused) mediaElement.play().catch(() => { });
-            else if (!shouldPlay && !mediaElement.paused) mediaElement.pause();
+          if (rt?.isStepping) {
+            if (!mediaElement.paused) mediaElement.pause();
+            rafId = requestAnimationFrame(updateVideo);
+            return;
           }
+          const shouldPlay = videoShouldPlayRef.current && !isPaused;
+          if (shouldPlay && mediaElement.paused) mediaElement.play().catch(() => {});
+          else if (!shouldPlay && !mediaElement.paused) mediaElement.pause();
           nodeRef.current?.getLayer()?.batchDraw();
           rafId = requestAnimationFrame(updateVideo);
         };
@@ -819,6 +820,7 @@ export default function StageView() {
   const [isRecording, setIsRecording] = useState(false);
   const [isEncoding, setIsEncoding] = useState(false);
   const [exportProgress, setExportProgress] = useState<number | null>(null);
+  const [exportFrameCount, setExportFrameCount] = useState(0);
   const [exportedVideo, setExportedVideo] = useState<{
     url: string;
     name: string;
@@ -871,10 +873,50 @@ export default function StageView() {
     setIsRecording(false);
     setIsEncoding(false);
     setExportProgress(null);
+    setExportFrameCount(0);
     setIsRecordModalOpen(false);
     mediaRecorderRef.current = null;
     recordedChunksRef.current = [];
   }, []);
+
+  const syncAndVerifyVideos = (advance: boolean = false, stepSec?: number) => {
+    const rt = runtime;
+    const resolvedStepSec = stepSec ?? rt.getStepMs() / 1000;
+
+    for (const [id, node] of spriteNodeRefs.current.entries()) {
+      const video = getVideoElementFromNode(node);
+      if (!video) continue;
+
+      const sprite = spritesRef.current.find((s) => s.id === id);
+      if (!sprite || !isVideoData(sprite.data)) continue;
+
+      const liveSprite = rt.getSpriteContext(id)?.sprite as any;
+      if (!liveSprite) continue;
+
+      let targetTime = liveSprite.videoCurrentTime ?? 0;
+
+      if (advance && liveSprite.videoPlaying) {
+        const playbackRate = liveSprite.videoPlaybackRate ?? 1;
+        const nextTime = targetTime + resolvedStepSec * playbackRate;
+
+        if (nextTime >= video.duration) {
+          if (liveSprite.videoLoop) {
+            targetTime = nextTime % video.duration;
+          } else {
+            targetTime = video.duration;
+            liveSprite.videoPlaying = false;
+          }
+        } else {
+          targetTime = nextTime;
+        }
+        liveSprite.videoCurrentTime = targetTime;
+      }
+
+      if (Math.abs(video.currentTime - targetTime) > 0.001) {
+        video.currentTime = targetTime;
+      }
+    }
+  };
 
   const handleExport = async (options: ExportOptions) => {
     const stage = stageRef.current;
@@ -884,19 +926,68 @@ export default function StageView() {
     const canvas = layer.getCanvas()._canvas;
     if (!canvas) return;
 
-    const physicalWidth = Math.floor(canvas.width / 2) * 2;
-    const physicalHeight = Math.floor(canvas.height / 2) * 2;
+    const captureWidth = Math.floor(canvas.width / 2) * 2;
+    const captureHeight = Math.floor(canvas.height / 2) * 2;
+    const physicalWidth = Math.floor(virtualWidth / 2) * 2;
+    const physicalHeight = Math.floor(virtualHeight / 2) * 2;
     const fps = options.fps;
 
-    setIsRecordModalOpen(false);
+    setIsRecordModalOpen(true);
     setIsRecording(true);
     setIsEncoding(false);
     setExportProgress(0);
+    setExportFrameCount(0);
+
+    for (const node of spriteNodeRefs.current.values()) {
+      const video = getVideoElementFromNode(node);
+      if (video) {
+        video.pause();
+      }
+    }
 
     let videoFrames: ImageBitmap[] = [];
     let audioSamples: Float32Array[] = [];
     let frameCounter = 0;
     const sampleRate = 44100;
+    const waitForNextFrame = () =>
+      new Promise<void>((resolve) => {
+        requestAnimationFrame(() => resolve());
+      });
+    const hasActiveVideoPlayback = () =>
+      Array.from(videoShouldPlayRefs.current.values()).some((ref) => ref.current);
+
+    const waitForVideoSeek = (video: HTMLVideoElement): Promise<void> => {
+      return new Promise<void>((resolve) => {
+        let settled = false;
+        const done = () => {
+          if (settled) return;
+          settled = true;
+          video.removeEventListener("seeked", onSeeked);
+          clearTimeout(timeout);
+          resolve();
+        };
+        const onSeeked = () => done();
+        const timeout = setTimeout(done, 300);
+        video.addEventListener("seeked", onSeeked, { once: true });
+      });
+    };
+
+    const exportStepSec = 1 / fps;
+    const syncAndWaitForVideos = async (advance: boolean) => {
+      const beforeTimes = new Map<HTMLVideoElement, number>();
+      for (const [, node] of spriteNodeRefs.current.entries()) {
+        const video = getVideoElementFromNode(node);
+        if (video) beforeTimes.set(video, video.currentTime);
+      }
+      syncAndVerifyVideos(advance, exportStepSec);
+      const waits: Promise<void>[] = [];
+      for (const [video, before] of beforeTimes.entries()) {
+        if (Math.abs(video.currentTime - before) > 0.001) {
+          waits.push(waitForVideoSeek(video));
+        }
+      }
+      if (waits.length > 0) await Promise.all(waits);
+    };
 
     try {
       const captureFrame = async () => {
@@ -905,17 +996,22 @@ export default function StageView() {
             canvas,
             0,
             0,
-            physicalWidth,
-            physicalHeight,
-            { colorSpaceConversion: "none" },
+            captureWidth,
+            captureHeight,
+            {
+              colorSpaceConversion: "none",
+              resizeWidth: physicalWidth,
+              resizeHeight: physicalHeight,
+              resizeQuality: "high",
+            },
           );
           videoFrames.push(bitmap);
 
           const samples = runtime.getAudioSamples(1 / fps, sampleRate);
-          runtime.playCapturedSamples(samples, sampleRate);
           audioSamples.push(samples);
 
           frameCounter++;
+          setExportFrameCount(frameCounter);
         } catch (e) {
           console.error(e);
         }
@@ -925,30 +1021,39 @@ export default function StageView() {
 
       let kickoffSettled = false;
       const playPromise = handlePlay({ stepping: true });
-      playPromise.then(() => {
-        kickoffSettled = true;
-      });
+      playPromise
+        .then(() => {
+          kickoffSettled = true;
+        })
+        .catch(() => {
+          kickoffSettled = true;
+        });
 
-      await Promise.resolve();
-      await Promise.resolve();
+      await waitForNextFrame();
+      await waitForNextFrame();
 
-      const exportStartTime = performance.now();
-      while (true) {
+      const minimumFrames = Math.max(1, Math.min(2, fps));
+      const maxFrames = Math.max(120, Math.ceil(fps * 300));
+
+      while (frameCounter < maxFrames) {
+        await syncAndWaitForVideos(false);
+
         layer.draw();
+        await waitForNextFrame();
         await captureFrame();
 
         await runtime.step();
-        await Promise.resolve();
+        await syncAndWaitForVideos(true);
+
         await Promise.resolve();
 
-        if (kickoffSettled && !runtime.hasLiveWaiters()) break;
-
-        const expectedMs = (frameCounter / fps) * 1000;
-        const actualMs = performance.now() - exportStartTime;
-        if (actualMs < expectedMs) {
-          await new Promise((resolve) =>
-            setTimeout(resolve, expectedMs - actualMs),
-          );
+        if (
+          kickoffSettled &&
+          !runtime.hasLiveWaiters() &&
+          !hasActiveVideoPlayback() &&
+          frameCounter >= minimumFrames
+        ) {
+          break;
         }
       }
 
@@ -961,7 +1066,6 @@ export default function StageView() {
       }
 
       setIsEncoding(true);
-      setIsRecordModalOpen(true);
       setExportProgress(0);
 
       const worker = new Worker(
@@ -1013,7 +1117,6 @@ export default function StageView() {
       resetRecordingState();
     }
   };
-
   useEffect(() => {
     let mounted = true;
     const effectKeys = [
@@ -1590,6 +1693,12 @@ export default function StageView() {
             return getFiniteNumber(video?.duration, 0);
           }
           if (property === "videoCurrentTime") {
+            const rt = (window as any).RUNTIME;
+            if (rt?.isStepping) {
+              return getFiniteNumber(
+                (target.videoCurrentTime as number | undefined) ?? 0,
+              );
+            }
             const video = getVideoElementFromNode(
               spriteNodeRefs.current.get(sprite.id) ?? null,
             );
@@ -1767,14 +1876,19 @@ export default function StageView() {
               target.videoPlaying = playing;
               const shouldPlayRef = videoShouldPlayRefs.current.get(sprite.id);
               if (shouldPlayRef) shouldPlayRef.current = playing;
-              const video = getVideoElementFromNode(
-                spriteNodeRefs.current.get(sprite.id) ?? null,
-              );
-              if (video) {
-                if (playing) {
-                  video.muted = current.data.videoVolume === 0;
-                  video.play().catch(() => {});
-                } else video.pause();
+              const rt = (window as any).RUNTIME;
+              if (!rt?.isStepping) {
+                const video = getVideoElementFromNode(
+                  spriteNodeRefs.current.get(sprite.id) ?? null,
+                );
+                if (video) {
+                  if (playing) {
+                    video.muted = current.data.videoVolume === 0;
+                    video.play().catch(() => {});
+                  } else {
+                    video.pause();
+                  }
+                }
               }
               queuePlaybackStateUpdate(sprite.id, {
                 data: { ...current.data, videoPlaying: playing },
@@ -2175,6 +2289,7 @@ export default function StageView() {
           isExporting={isRecording}
           isEncoding={isEncoding}
           progress={exportProgress}
+          frameCount={exportFrameCount}
         />
       )}
 
