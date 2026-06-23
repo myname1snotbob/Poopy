@@ -384,7 +384,7 @@ function TranscriptionModal({
             </div>
           </label>
           <label className="transcription-row">
-            <span>Style</span>
+            <span>Weight</span>
             <select
               value={options.style}
               disabled={isTranscribing}
