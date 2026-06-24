@@ -164,9 +164,15 @@ const FUN_FACTS = [
   "'In the English language, 'that' is a highly versatile word. Depending on how it is used in a sentence, its primary meanings include:Demonstrative Pronoun: Points to a specific person, object, or idea—usually one that is further away, mentioned previously, or out of reach (e.g., 'Look at that').Relative Pronoun: Connects a clause to a noun, often used instead of 'who' or 'which' (e.g., 'The book that I read').Conjunction: Used to introduce a subordinate clause or link an action to a thought/statement (e.g., 'She said that she would be late').Adverb: Means 'to such an extent' or 'particularly' (e.g., 'It isn't that far').' - Vedalgations.",
   "'kitzal.com.' - Ash.",
   "Antimony wouldn't be created without the amazing people and Penguinmod!",
-  "hi im a fun fact :)"
+  "hi im a fun fact :)",
+  "Don't stop being who you are."
 ];
+
 FUN_FACTS.push(`There are ${FUN_FACTS.length} different fun facts.`);
+
+if (new Date().getMonth() === 5) {
+  FUN_FACTS.push("Happy Pride Month!");
+}
 
 const RARE_FACT_INDEX = FUN_FACTS.findIndex((fact) =>
   fact.startsWith("Hey, wow! Uhh...")
