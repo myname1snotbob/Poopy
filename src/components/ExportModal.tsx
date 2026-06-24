@@ -86,6 +86,10 @@ const FUN_FACTS = [
   "You can safely ignore this message. Or don't. Your call, buddy.",
   "This fun fact is gluten-free!",
   "Hey, wow! Uhh... so you're reading this sentence. That's nice! I really don't know what to say though. Oh... Oh no, I'm going to disappear soon, the code will request another fact. Please, user, remember me. I don't want to go...",
+  "Gen1x (the owner of Antimony), thinks that vedal (a developer for Antimony), may or may not be into him.",
+  "9 + 10 = 21",
+  "The tada emoji (🎉) is a very used reaction in the Antimony discord server.",
+  "Antimony 2.0 is omly getting closer and closer..."
   "The dot over the letters 'i' and 'j' is called a tittle.",
   "The hashtag symbol (#) is technically called an octothorpe.",
   "Clouds can weigh hundreds of tons, even though they float.",
