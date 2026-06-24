@@ -4,13 +4,14 @@ import js from "@eslint/js";
 import { defineConfig } from "eslint/config";
 import globals from "globals";
 import ts from "typescript-eslint";
+import prettierConfig from "eslint-config-prettier";
 
 const gitignorePath = path.resolve(import.meta.dirname, ".gitignore");
 
 export default defineConfig(
   includeIgnoreFile(gitignorePath),
   js.configs.recommended,
-  ts.configs.recommended,
+  ...ts.configs.recommended,
   {
     languageOptions: { globals: { ...globals.browser, ...globals.node } },
     rules: {
@@ -19,9 +20,8 @@ export default defineConfig(
       "no-undef": "off",
       "no-var": "error",
       "prefer-const": "warn",
-      "no-unused-vars": "warn",
-    },
-    extends: ["prettier"],
+      "no-unused-vars": "warn"
+    }
   },
   {
     files: ["**/*.{ts,tsx}"],
@@ -32,8 +32,5 @@ export default defineConfig(
       },
     },
   },
-  {
-    files: ["**/*.{ts,tsx}"],
-    rules: {},
-  },
+  prettierConfig
 );

@@ -195,7 +195,7 @@ function getValueInputsForBlock(blockType: string) {
         }
       };
     },
-    appendStatementInput(_name: string) {
+    appendStatementInput() {
       return {
         setCheck() {
           return this;

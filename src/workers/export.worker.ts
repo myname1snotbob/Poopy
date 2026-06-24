@@ -30,13 +30,15 @@ function buildAudioPayload(
   if (totalSampleCount <= 0) return null;
 
   const data = new Float32Array(totalSampleCount * 2);
-  let offset = 0;
+  let planarOffset = 0;
 
   for (const sample of validSamples) {
-    const half = sample.length / 2;
-    data.set(sample.subarray(0, half), offset);
-    data.set(sample.subarray(half), totalSampleCount + offset);
-    offset += half;
+    const frameSamples = sample.length / 2;
+    for (let i = 0; i < frameSamples; i++) {
+      data[planarOffset + i] = sample[i * 2];
+      data[totalSampleCount + planarOffset + i] = sample[i * 2 + 1];
+    }
+    planarOffset += frameSamples;
   }
 
   return { data };
@@ -47,7 +49,7 @@ let target: BufferTarget | null = null;
 let output: Output | null = null;
 let videoSource: VideoSampleSource | null = null;
 let audioSource: AudioSampleSource | null = null;
-let audioChunks: Float32Array[] = [];
+const audioChunks: Float32Array[] = [];
 let gifEncoder: any = null;
 let gifCtx: OffscreenCanvasRenderingContext2D | null = null;
 let frameCounter = 0;
@@ -91,7 +93,7 @@ self.onmessage = async (e: MessageEvent) => {
         videoSource = new VideoSampleSource({
           codec: isMP4 ? "avc" : "vp9",
           bitrate: config.options.bitrate,
-          latencyMode: "realtime",
+          latencyMode: "quality",
           keyFrameInterval: Math.max(1, Math.round(config.fps)),
           colorSpace: {
             primaries: "bt709",
@@ -147,7 +149,7 @@ self.onmessage = async (e: MessageEvent) => {
         } as any);
 
         await videoSource!.add(sample, {
-          keyFrame: frameCounter === 0 || frameCounter % Math.max(1, Math.round(config.fps)) === 0,
+          keyFrame: frameCounter === 0,
         });
         sample.close();
         bitmap.close();

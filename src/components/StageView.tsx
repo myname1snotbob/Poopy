@@ -1096,7 +1096,7 @@ export default function StageView() {
             colorSpaceConversion: "none",
             resizeWidth: physicalWidth,
             resizeHeight: physicalHeight,
-            resizeQuality: "high",
+            resizeQuality: "medium",
           },
         );
 
