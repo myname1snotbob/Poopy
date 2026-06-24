@@ -125,44 +125,81 @@ const FUN_FACTS = [
 ];
 FUN_FACTS.push(`There are ${FUN_FACTS.length} different fun facts.`);
 
+const RARE_FACT_INDEX = FUN_FACTS.findIndex((fact) =>
+  fact.startsWith("Hey, wow! Uhh...")
+);
+
+function shuffleIndices() {
+  const indices = Array.from({ length: FUN_FACTS.length }, (_, i) => i);
+
+  if (RARE_FACT_INDEX !== -1) {
+    indices.splice(RARE_FACT_INDEX, 1);
+  }
+
+  for (let i = indices.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [indices[i], indices[j]] = [indices[j], indices[i]];
+  }
+
+  return indices;
+}
+
 function useFunFact(active: boolean) {
-    const [index, setIndex] = useState(() => Math.floor(Math.random() * FUN_FACTS.length));
-    const [visible, setVisible] = useState(true);
-    const timerRef = useRef < ReturnType < typeof setTimeout > | null > (null);
+  const [visible, setVisible] = useState(true);
 
-    useEffect(() => {
-        if (!active) return;
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const shuffleRef = useRef<number[]>(shuffleIndices());
+  const positionRef = useRef(0);
 
-        const schedulNext = (factIndex: number) => {
-            const delay = Math.min(12000, Math.max(4000, FUN_FACTS[factIndex].length * 50));
-            timerRef.current = setTimeout(() => {
-                setVisible(false);
-                setTimeout(() => {
-                    setIndex((prev) => {
-                        let next = prev;
+  const [index, setIndex] = useState(shuffleRef.current[0]);
 
-                        while (next === prev) {
-                            next = Math.floor(Math.random() * FUN_FACTS.length);
-                        }
+  useEffect(() => {
+    if (!active) return;
 
-                        schedulNext(next);
-                        return next;
-                    });
-                    setVisible(true);
-                }, 400);
-            }, delay);
-        };
+    const scheduleNext = (factIndex: number) => {
+      const delay = Math.min(
+        12000,
+        Math.max(4000, FUN_FACTS[factIndex].length * 50)
+      );
 
-        schedulNext(index);
-        return () => {
-            if (timerRef.current) clearTimeout(timerRef.current);
-        };
-    }, [active]); // eslint-disable-line react-hooks/exhaustive-deps
+      timerRef.current = setTimeout(() => {
+        setVisible(false);
 
-    return {
-        fact: FUN_FACTS[index],
-        visible
+        setTimeout(() => {
+          let next: number;
+
+          if (
+            RARE_FACT_INDEX !== -1 &&
+            Math.random() < 0.04 &&
+            factIndex !== RARE_FACT_INDEX
+          ) {
+            next = RARE_FACT_INDEX;
+          } else {
+            positionRef.current++;
+
+            if (positionRef.current >= shuffleRef.current.length) {
+              shuffleRef.current = shuffleIndices();
+              positionRef.current = 0;
+            }
+
+            next = shuffleRef.current[positionRef.current];
+          }
+
+          setIndex(next);
+          setVisible(true);
+          scheduleNext(next);
+        }, 400);
+      }, delay);
     };
+
+    scheduleNext(index);
+
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [active]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return { fact: FUN_FACTS[index], visible };
 }
 
 interface ExportModalProps {
