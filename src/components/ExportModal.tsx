@@ -89,7 +89,7 @@ const FUN_FACTS = [
   "Gen1x (the owner of Antimony), thinks that vedal (a developer for Antimony), may or may not be into him.",
   "9 + 10 = 21",
   "The tada emoji (🎉) is a very used reaction in the Antimony discord server.",
-  "Antimony 2.0 is omly getting closer and closer..."
+  "Antimony 2.0 is only getting closer and closer...",
   "The dot over the letters 'i' and 'j' is called a tittle.",
   "The hashtag symbol (#) is technically called an octothorpe.",
   "Clouds can weigh hundreds of tons, even though they float.",
