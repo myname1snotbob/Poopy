@@ -1,6 +1,6 @@
 import { Monitor, Gauge, Palette, Grid3x3, Paintbrush, X } from "lucide-react";
-import { RESOLUTION_PRESETS, type ProjectSettings, type ThemePreset } from "../lib/settings";
-import { DARK_THEME, LIGHT_THEME, type ThemeColorKey } from "../lib/themes";
+import { RESOLUTION_PRESETS, type ProjectSettings } from "../lib/settings";
+import { DARK_THEME, LIGHT_THEME, useTheme, type ThemeColorKey } from "../lib/themes";
 
 interface SettingsModalProps {
   settings: ProjectSettings;
@@ -15,6 +15,7 @@ export default function SettingsModal({
   isClosing = false,
   onClose,
 }: SettingsModalProps) {
+  const { theme, setTheme } = useTheme();
   const matchedPreset = RESOLUTION_PRESETS.find(
     (preset) =>
       preset.width === settings.width && preset.height === settings.height,
@@ -198,14 +199,14 @@ export default function SettingsModal({
               <span className="settings-label">Preset</span>
               <select
                 className="settings-select"
-                value={settings.theme.preset}
+                value={theme.preset}
                 onChange={(e) => {
-                  const preset = e.target.value as ThemePreset;
+                  const preset = e.target.value as "dark" | "light" | "custom";
                   if (preset === "custom") {
-                    const base = settings.theme.preset === "light" ? LIGHT_THEME : DARK_THEME;
-                    update({ theme: { preset, custom: { ...base } } });
+                    const base = theme.preset === "light" ? LIGHT_THEME : DARK_THEME;
+                    setTheme({ preset, custom: { ...base } });
                   } else {
-                    update({ theme: { preset, custom: {} } });
+                    setTheme({ preset, custom: {} });
                   }
                 }}
               >
@@ -214,7 +215,7 @@ export default function SettingsModal({
                 <option value="custom">Custom</option>
               </select>
             </div>
-            {settings.theme.preset === "custom" && (
+            {theme.preset === "custom" && (
               <>
                 {(
                   [
@@ -233,19 +234,19 @@ export default function SettingsModal({
                     <div className="settings-color-field">
                       <input
                         type="color"
-                        value={settings.theme.custom[key] || DARK_THEME[key]}
+                        value={theme.custom[key] || DARK_THEME[key]}
                         onChange={(e) => {
-                          const custom = { ...settings.theme.custom, [key]: e.target.value };
-                          update({ theme: { ...settings.theme, custom } });
+                          const custom = { ...theme.custom, [key]: e.target.value };
+                          setTheme({ ...theme, custom });
                         }}
                       />
                       <input
                         className="settings-input"
                         type="text"
-                        value={settings.theme.custom[key] || DARK_THEME[key]}
+                        value={theme.custom[key] || DARK_THEME[key]}
                         onChange={(e) => {
-                          const custom = { ...settings.theme.custom, [key]: e.target.value };
-                          update({ theme: { ...settings.theme, custom } });
+                          const custom = { ...theme.custom, [key]: e.target.value };
+                          setTheme({ ...theme, custom });
                         }}
                       />
                     </div>

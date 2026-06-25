@@ -1,3 +1,5 @@
+import { createContext, useContext } from "react";
+
 export const THEME_COLOR_KEYS = [
   "bgApp",
   "bgPrimary",
@@ -106,4 +108,46 @@ export function applyTheme(colors: ThemeColors): void {
   for (const key of THEME_COLOR_KEYS) {
     root.style.setProperty(CSS_VAR_MAP[key], colors[key]);
   }
+}
+
+export interface ThemeConfig {
+  preset: ThemePreset;
+  custom: Partial<Record<ThemeColorKey, string>>;
+}
+
+const THEME_STORAGE_KEY = "antimony-editor-theme";
+
+export function loadTheme(): ThemeConfig {
+  try {
+    const stored = localStorage.getItem(THEME_STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (parsed && typeof parsed === "object" && typeof parsed.preset === "string") {
+        return {
+          preset: parsed.preset as ThemePreset,
+          custom: parsed.custom ?? {}
+        };
+      }
+    }
+  } catch {}
+  return { preset: "dark", custom: {} };
+}
+
+export function saveTheme(theme: ThemeConfig): void {
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify(theme));
+  } catch {}
+}
+
+export interface ThemeContextValue {
+  theme: ThemeConfig;
+  setTheme: (theme: ThemeConfig) => void;
+}
+
+export const ThemeContext = createContext<ThemeContextValue | null>(null);
+
+export function useTheme(): ThemeContextValue {
+  const ctx = useContext(ThemeContext);
+  if (!ctx) throw new Error("useTheme must be used within ThemeContext");
+  return ctx;
 }

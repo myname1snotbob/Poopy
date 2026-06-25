@@ -1,12 +1,4 @@
 import { createContext, useContext } from "react";
-import type { ThemeColorKey, ThemePreset } from "./themes";
-
-export type { ThemePreset };
-
-export interface ThemeConfig {
-  preset: ThemePreset;
-  custom: Partial<Record<ThemeColorKey, string>>;
-}
 
 export interface ProjectSettings {
   width: number;
@@ -17,7 +9,6 @@ export interface ProjectSettings {
   snapToGrid: boolean;
   gridSize: number;
   showROT: boolean;
-  theme: ThemeConfig;
 }
 
 export const DEFAULT_PROJECT_SETTINGS: ProjectSettings = {
@@ -28,8 +19,7 @@ export const DEFAULT_PROJECT_SETTINGS: ProjectSettings = {
   showGrid: true,
   showROT: true,
   snapToGrid: false,
-  gridSize: 80,
-  theme: { preset: "dark", custom: {} }
+  gridSize: 80
 };
 
 export const RESOLUTION_PRESETS = [
@@ -51,8 +41,7 @@ export function normalizeProjectSettings(
     showGrid: value?.showGrid ?? DEFAULT_PROJECT_SETTINGS.showGrid,
     snapToGrid: value?.snapToGrid ?? DEFAULT_PROJECT_SETTINGS.snapToGrid,
     gridSize: clampNumber(value?.gridSize, 5, 200, DEFAULT_PROJECT_SETTINGS.gridSize),
-    showROT: value?.showROT ?? DEFAULT_PROJECT_SETTINGS.showROT,
-    theme: value?.theme ?? DEFAULT_PROJECT_SETTINGS.theme
+    showROT: value?.showROT ?? DEFAULT_PROJECT_SETTINGS.showROT
   };
 }
 
